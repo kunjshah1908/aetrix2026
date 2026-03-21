@@ -14,6 +14,7 @@ export interface UserReportRecord {
   name: string;
   phoneNumber: string;
   location: string;
+  accidentPoint: string;
   accidentType: UserAccidentType;
   description: string;
   imageDataUrl: string;
@@ -27,6 +28,7 @@ interface NewUserReportInput {
   name: string;
   phoneNumber: string;
   location: string;
+  accidentPoint: string;
   accidentType: UserAccidentType;
   description: string;
   imageDataUrl: string;
@@ -42,6 +44,7 @@ const isUserReportRecord = (value: unknown): value is UserReportRecord => {
     typeof report.name === 'string' &&
     typeof report.phoneNumber === 'string' &&
     typeof report.location === 'string' &&
+    typeof report.accidentPoint === 'string' &&
     typeof report.accidentType === 'string' &&
     typeof report.description === 'string' &&
     typeof report.imageDataUrl === 'string' &&
@@ -76,6 +79,7 @@ const createFallbackReport = (input: NewUserReportInput): UserReportRecord => ({
   name: input.name,
   phoneNumber: input.phoneNumber,
   location: input.location,
+  accidentPoint: input.accidentPoint,
   accidentType: input.accidentType,
   description: input.description,
   imageDataUrl: input.imageDataUrl,
