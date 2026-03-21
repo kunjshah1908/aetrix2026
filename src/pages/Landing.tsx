@@ -17,10 +17,12 @@ export default function Landing() {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccessMessage, setSubmitSuccessMessage] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const successMessageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const formatCoords = (latitude: number, longitude: number) =>
     `Lat ${latitude.toFixed(6)}, Lng ${longitude.toFixed(6)}`;
@@ -123,7 +125,14 @@ export default function Landing() {
       return;
     }
 
-    alert('Report submitted successfully!');
+    setSubmitSuccessMessage('Report submitted successfully!');
+    if (successMessageTimerRef.current) {
+      clearTimeout(successMessageTimerRef.current);
+    }
+    successMessageTimerRef.current = setTimeout(() => {
+      setSubmitSuccessMessage('');
+      successMessageTimerRef.current = null;
+    }, 2600);
     // Reset form
     setName('');
     setPhoneNumber('');
@@ -209,12 +218,35 @@ export default function Landing() {
     requestCurrentLocation();
 
     return () => {
+      if (successMessageTimerRef.current) {
+        clearTimeout(successMessageTimerRef.current);
+      }
       stopCamera();
     };
   }, []);
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-page)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-page)', overflowY: 'auto' }}>
+      {submitSuccessMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '16px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1250,
+            background: '#ecfdf5',
+            color: '#166534',
+            border: '1px solid #86efac',
+            borderRadius: '8px',
+            padding: '10px 14px',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+            fontSize: '13px',
+          }}
+        >
+          {submitSuccessMessage}
+        </div>
+      )}
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: '10px' }}>
         <button
           onClick={() => navigate('/regional')}
@@ -245,7 +277,7 @@ export default function Landing() {
           Login as Command Center
         </button>
       </div>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '80px 16px 24px' }}>
         <div style={{ maxWidth: '500px', width: '100%', padding: '20px', background: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
           <h1 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--text-primary)' }}>Report an Accident</h1>
           <form onSubmit={handleSubmit}>
