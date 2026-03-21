@@ -105,7 +105,9 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
 
   return (
     <div className="map-panel">
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div className="map-container">
+        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      </div>
 
       <div className="map-legend">
         <div className="map-legend-item">

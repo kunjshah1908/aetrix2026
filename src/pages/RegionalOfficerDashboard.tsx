@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/Topbar';
 import ReportsSidebar from '../components/ReportsSidebar';
@@ -6,40 +6,55 @@ import MapPanel from '../components/MapPanel';
 import IncidentEnrichmentForm from '../components/IncidentEnrichmentForm';
 import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
-import { activeIncidents, type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
-
-// Mock data for user reports
-const mockUserReports: Incident[] = [
-  {
-    id: 'REP-001',
-    location: 'Sector 15, Gandhinagar',
-    severity: 'MODERATE' as Severity,
-    elapsed: '00:15:00',
-    status: 'REPORTED',
-    lat: 23.215,
-    lng: 72.637,
-    type: 'Vehicle Accident',
-  },
-  {
-    id: 'REP-002',
-    location: 'Highway 8, Ahmedabad',
-    severity: 'MINOR' as Severity,
-    elapsed: '00:30:00',
-    status: 'REPORTED',
-    lat: 23.025,
-    lng: 72.571,
-    type: 'Road Debris',
-  },
-];
+import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
+import { getUserReports, removeUserReport, toIncidentFromUserReport, type UserReportRecord } from '../lib/reportDatabase';
+import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated } from '../lib/commandCenterIncidentStore';
 
 export default function RegionalOfficerDashboard() {
   const navigate = useNavigate();
-  const [selectedId, setSelectedId] = useState(mockUserReports[0].id);
+  const [selectedId, setSelectedId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [showDiversion, setShowDiversion] = useState(false);
-  const [reports, setReports] = useState<Incident[]>([...mockUserReports]);
+  const [reports, setReports] = useState<Incident[]>([]);
+  const [userReports, setUserReports] = useState<UserReportRecord[]>([]);
+  const [selectedReport, setSelectedReport] = useState<UserReportRecord | null>(null);
+  const [reportsError, setReportsError] = useState('');
+  const [verifyMessage, setVerifyMessage] = useState('');
+  const [verifiedReportIds, setVerifiedReportIds] = useState<string[]>([]);
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
   const [selectedSubarea, setSelectedSubarea] = useState('Gandhinagar Central');
+  const selectedIncident = reports.find((item) => item.id === selectedId);
+
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        const storedReports = await getUserReports();
+        setUserReports(storedReports);
+        const incidentReports = storedReports.map(toIncidentFromUserReport);
+        setReports(incidentReports);
+        if (incidentReports.length > 0) {
+          setSelectedId(incidentReports[0].id);
+        }
+      } catch {
+        setReportsError('Unable to load reports from backend. Please make sure API server is running.');
+      }
+    };
+
+    loadReports();
+  }, []);
+
+  useEffect(() => {
+    const syncVerifiedIds = () => {
+      const submittedToCommandCenter = getCommandCenterIncidents();
+      setVerifiedReportIds(submittedToCommandCenter.map((incident) => incident.id));
+    };
+
+    syncVerifiedIds();
+    const unsubscribe = onCommandCenterIncidentsUpdated(syncVerifiedIds);
+    return unsubscribe;
+  }, []);
 
   const handleDecisionApply = (entry: DecisionEntry) => {
     setDecisionLog(prev => [entry, ...prev]);
@@ -61,18 +76,51 @@ export default function RegionalOfficerDashboard() {
     setSelectedId(newId);
   };
 
+  const handleOpenReport = (id: string) => {
+    const report = userReports.find((item) => item.id === id) || null;
+    setSelectedReport(report);
+  };
+
   const handleVerify = (id: string) => {
-    // Logic to verify and open in reporting space
     setSelectedId(id);
-    // Perhaps open a modal or switch view
+    setVerifyMessage('Verified Accident, Please fill the Enrichment Form');
+    window.setTimeout(() => {
+      setVerifyMessage('');
+    }, 2500);
   };
 
   const handleReject = (id: string) => {
-    setReports(prev => prev.filter(r => r.id !== id));
+    setRejectTargetId(id);
+    setRejectReason('');
   };
 
-  const handleSkip = (id: string) => {
-    // Skip logic, maybe mark as skipped
+  const handleRejectSubmit = async () => {
+    if (!rejectTargetId) return;
+    if (!rejectReason.trim()) {
+      alert('Please enter a reason for rejection.');
+      return;
+    }
+
+    try {
+      await removeUserReport(rejectTargetId);
+    } catch {
+      alert('Could not remove report from backend.');
+      return;
+    }
+
+    setReports(prev => prev.filter(r => r.id !== rejectTargetId));
+    setUserReports(prev => prev.filter(report => report.id !== rejectTargetId));
+    setVerifiedReportIds(prev => prev.filter(id => id !== rejectTargetId));
+    if (selectedReport?.id === rejectTargetId) {
+      setSelectedReport(null);
+    }
+
+    setRejectTargetId(null);
+    setRejectReason('');
+  };
+
+  const handleEnrichmentSubmitted = (incidentId: string) => {
+    setVerifiedReportIds(prev => (prev.includes(incidentId) ? prev : [...prev, incidentId]));
   };
 
   return (
@@ -92,6 +140,11 @@ export default function RegionalOfficerDashboard() {
           <option>Surat</option>
         </select>
       </div>
+      {reportsError && (
+        <div style={{ padding: '10px 20px', background: '#fef2f2', color: '#991b1b', borderBottom: '1px solid #fecaca' }}>
+          {reportsError}
+        </div>
+      )}
       <div className="dashboard-layout">
         <div className="dashboard-top">
           <MapPanel
@@ -101,7 +154,7 @@ export default function RegionalOfficerDashboard() {
             showDiversion={showDiversion}
           />
           <div className="right-panel">
-            <IncidentEnrichmentForm selectedId={selectedId} />
+            <IncidentEnrichmentForm selectedId={selectedId} selectedIncident={selectedIncident} onSubmitted={handleEnrichmentSubmitted} />
           </div>
         </div>
         <div className="dashboard-bottom">
@@ -109,9 +162,10 @@ export default function RegionalOfficerDashboard() {
             <ReportsSidebar
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onOpenReport={handleOpenReport}
               onVerify={handleVerify}
               onReject={handleReject}
-              onSkip={handleSkip}
+              verifiedReportIds={verifiedReportIds}
               reports={reports}
             />
           </div>
@@ -124,6 +178,141 @@ export default function RegionalOfficerDashboard() {
           </div>
         </div>
       </div>
+      {verifyMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '16px',
+            right: '16px',
+            zIndex: 1200,
+            background: '#ecfdf5',
+            color: '#166534',
+            border: '1px solid #86efac',
+            borderRadius: '8px',
+            padding: '10px 12px',
+            fontSize: '13px',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+          }}
+        >
+          {verifyMessage}
+        </div>
+      )}
+      {rejectTargetId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1300,
+            padding: '20px',
+          }}
+          onClick={() => setRejectTargetId(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: 'var(--bg-surface)',
+              borderRadius: '10px',
+              border: '1px solid var(--border-default)',
+              padding: '16px',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '10px', color: 'var(--text-primary)' }}>Reason for Rejection</h3>
+            <textarea
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              placeholder="Enter reason for rejecting this accident report"
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid var(--border-default)',
+                borderRadius: '6px',
+                fontFamily: 'Merriweather, serif',
+                resize: 'vertical',
+              }}
+            />
+            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setRejectTargetId(null)}
+                style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--border-default)', background: 'transparent', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', background: '#dc2626', color: 'white', cursor: 'pointer' }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedReport && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={() => setSelectedReport(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '700px',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              background: 'var(--bg-surface)',
+              borderRadius: '10px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+              padding: '20px',
+              border: '1px solid var(--border-default)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>User Report Details</h3>
+              <button
+                onClick={() => setSelectedReport(null)}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              <p><strong>Report ID:</strong> {selectedReport.id}</p>
+              <p><strong>Name:</strong> {selectedReport.name}</p>
+              <p><strong>Phone Number:</strong> {selectedReport.phoneNumber}</p>
+              <p><strong>Location:</strong> {selectedReport.location}</p>
+              <p><strong>Type of Accident:</strong> {selectedReport.accidentType}</p>
+              <p><strong>Description:</strong> {selectedReport.description}</p>
+              <p><strong>Submitted At:</strong> {new Date(selectedReport.createdAt).toLocaleString()}</p>
+            </div>
+
+            <div style={{ marginTop: '14px' }}>
+              <div style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>Uploaded Photo</div>
+              <img
+                src={selectedReport.imageDataUrl}
+                alt="Reported accident"
+                style={{ width: '100%', maxHeight: '360px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-default)' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <NewReportModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleNewReport} />
     </div>
   );

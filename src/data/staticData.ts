@@ -1,6 +1,21 @@
 export type Severity = 'CRITICAL' | 'MAJOR' | 'MODERATE' | 'MINOR';
 export type IncidentStatus = 'ACTIVE' | 'RESOLVED' | 'DISMISSED' | 'REPORTED';
 
+export interface EnrichmentDetails {
+  confirmedSeverity: string;
+  accidentType: string[];
+  vehiclesInvolved: string;
+  casualties: string;
+  ambulanceRequired: string;
+  trafficFlow: string;
+  laneBlockage: string;
+  roadType: string;
+  hazardousMaterial: string;
+  gpsCoordinates: string;
+  photoNames: string[];
+  officerNotes: string;
+}
+
 export interface Incident {
   id: string;
   location: string;
@@ -10,6 +25,12 @@ export interface Incident {
   lat: number;
   lng: number;
   type: string;
+  reporterName?: string;
+  reporterPhone?: string;
+  description?: string;
+  reporterDescription?: string;
+  imageDataUrl?: string;
+  enrichmentDetails?: EnrichmentDetails;
 }
 
 export interface Officer {

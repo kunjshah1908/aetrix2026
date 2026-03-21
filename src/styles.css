@@ -101,8 +101,8 @@ input, select, textarea, button {
 
 /* RIGHT PANEL (in top section) */
 .right-panel {
-  width: 340px;
-  min-width: 340px;
+  width: 40%;
+  min-width: 0;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-default);
   display: flex;
@@ -112,9 +112,19 @@ input, select, textarea, button {
 
 /* MAP PANEL */
 .map-panel {
-  flex: 1;
+  width: 60%;
   overflow: hidden;
   position: relative;
+}
+
+.map-container {
+  max-width: 1100px;
+  height: 520px;
+  margin: 16px auto;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  border: 1px solid #e5e7eb;
 }
 
 /* SECTION HEADERS */
@@ -210,17 +220,22 @@ input, select, textarea, button {
   border: 1px solid var(--border-default);
   background: var(--bg-card);
   color: var(--text-muted);
-  padding: 6px 10px;
+  padding: 8px 16px;
   cursor: pointer;
-  border-radius: 0;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-.btn-sidebar:hover { color: var(--text-primary); border-color: #aab0be; }
+.btn-sidebar:hover { color: var(--text-primary); border-color: #aab0be; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transform: translateY(-2px); }
 .btn-sidebar:active { transform: scale(0.97); }
-.btn-sidebar.primary { color: var(--accent-blue); border-color: var(--accent-blue-dim); background: #e8f0fb; }
+.btn-sidebar.primary { color: var(--accent-blue); border-color: var(--accent-blue-dim); background: #e8f0fb; box-shadow: 0 2px 8px rgba(46, 75, 116, 0.2); }
 
 /* TABS */
 .tab-bar {
   display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
   border-bottom: 1px solid var(--border-default);
 }
 .tab-btn {
@@ -230,15 +245,29 @@ input, select, textarea, button {
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: var(--text-muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 10px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 10px 16px;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
 }
-.tab-btn:hover { color: var(--text-secondary); }
-.tab-btn.active { color: var(--accent-blue-dark); border-bottom-color: var(--accent-blue-dark); }
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: #f8fafc;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  border-color: var(--border-default);
+}
+.tab-btn.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--accent-blue-light), var(--accent-blue));
+  border-color: var(--accent-blue-dark);
+  box-shadow: 0 8px 20px rgba(46, 75, 116, 0.3);
+  transform: translateY(-3px);
+}
 
 /* COPILOT TAB */
 .quick-templates { padding: 10px 14px; }
@@ -250,20 +279,32 @@ input, select, textarea, button {
   margin-bottom: 8px;
   font-weight: 600;
 }
-.template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.template-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .template-btn {
   font-family: 'IBM Plex Mono', monospace;
   background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
   font-size: 11px;
-  padding: 6px 8px;
+  padding: 12px 14px;
   cursor: pointer;
-  border-radius: 0;
-  text-align: left;
+  border-radius: 12px;
+  text-align: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.template-btn:hover { color: var(--text-primary); border-color: #aab0be; }
-.template-btn:active { transform: scale(0.97); }
+.template-btn:hover {
+  color: var(--accent-blue-dark);
+  background: #f0f6fb;
+  border-color: var(--accent-blue-dim);
+  box-shadow: 0 6px 16px rgba(46, 75, 116, 0.15);
+  transform: translateY(-2px);
+}
+.template-btn:active { transform: scale(0.95); }
 
 /* CHAT */
 .chat-area {
@@ -340,20 +381,23 @@ input, select, textarea, button {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 5px 12px;
+  padding: 7px 16px;
   cursor: pointer;
-  border-radius: 0;
+  border-radius: 18px;
   background: transparent;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 .decision-btn.apply {
   color: var(--accent-blue);
   border: 1px solid var(--accent-blue-dim);
 }
-.decision-btn.apply:hover { background: #e8f0fb; }
+.decision-btn.apply:hover { background: #e8f0fb; box-shadow: 0 4px 10px rgba(46, 75, 116, 0.15); transform: translateY(-2px); }
 .decision-btn.skip {
   color: var(--text-muted);
   border: 1px solid var(--border-default);
 }
+.decision-btn.skip:hover { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
 .decision-btn:active { transform: scale(0.97); }
 .decision-applied {
   font-size: 11px;
@@ -370,12 +414,14 @@ input, select, textarea, button {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 8px;
+  padding: 10px;
   cursor: pointer;
-  border-radius: 0;
+  border-radius: 20px;
   margin-bottom: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(46, 75, 116, 0.1);
 }
-.apply-all-btn:hover { background: #e8f0fb; }
+.apply-all-btn:hover { background: #e8f0fb; box-shadow: 0 4px 12px rgba(46, 75, 116, 0.2); transform: translateY(-2px); }
 .apply-all-btn:active { transform: scale(0.97); }
 
 /* COPILOT INPUT */
