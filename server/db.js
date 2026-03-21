@@ -5,7 +5,7 @@ dotenv.config();
 dotenv.config({ path: '.env.example', override: false });
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.wheer || '';
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export const reportsTable = 'user_reports';
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseServiceRoleKey);
