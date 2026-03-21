@@ -9,6 +9,7 @@ import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
 import { getUserReports, removeUserReport, toIncidentFromUserReport, type UserReportRecord } from '../lib/reportDatabase';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated } from '../lib/commandCenterIncidentStore';
+import { getSupabaseAuthClient } from '../lib/supabaseClient';
 
 export default function RegionalOfficerDashboard() {
   const navigate = useNavigate();
@@ -123,22 +124,50 @@ export default function RegionalOfficerDashboard() {
     setVerifiedReportIds(prev => (prev.includes(incidentId) ? prev : [...prev, incidentId]));
   };
 
+  const handleLogout = async () => {
+    try {
+      const supabase = getSupabaseAuthClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore and continue route fallback.
+    }
+    navigate('/regional');
+  };
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Topbar />
       <div style={{ padding: '10px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)' }}>
-        <label style={{ marginRight: '10px', color: 'var(--text-secondary)' }}>Select Subarea:</label>
-        <select
-          value={selectedSubarea}
-          onChange={(e) => setSelectedSubarea(e.target.value)}
-          style={{ padding: '5px', border: '1px solid var(--border-default)', borderRadius: '4px' }}
-        >
-          <option>Gandhinagar Central</option>
-          <option>Ahmedabad North</option>
-          <option>Ahmedabad South</option>
-          <option>Vadodara</option>
-          <option>Surat</option>
-        </select>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+          <div>
+            <label style={{ marginRight: '10px', color: 'var(--text-secondary)' }}>Select Subarea:</label>
+            <select
+              value={selectedSubarea}
+              onChange={(e) => setSelectedSubarea(e.target.value)}
+              style={{ padding: '5px', border: '1px solid var(--border-default)', borderRadius: '4px' }}
+            >
+              <option>Gandhinagar Central</option>
+              <option>Ahmedabad North</option>
+              <option>Ahmedabad South</option>
+              <option>Vadodara</option>
+              <option>Surat</option>
+            </select>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid var(--border-default)',
+              background: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
       {reportsError && (
         <div style={{ padding: '10px 20px', background: '#fef2f2', color: '#991b1b', borderBottom: '1px solid #fecaca' }}>
