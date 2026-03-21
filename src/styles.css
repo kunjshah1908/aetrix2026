@@ -32,7 +32,8 @@
 
 html, body, #root {
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--bg-page);
   color: var(--text-primary);
   font-family: 'Merriweather', serif;
