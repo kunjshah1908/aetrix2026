@@ -8,11 +8,23 @@ app.use(express.json({ limit: '20mb' }));
 
 const createId = () => `REP-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
+const parseAccidentPointCoords = (accidentPoint) => {
+  if (typeof accidentPoint !== 'string') return null;
+  const match = accidentPoint.match(/Lat\s*(-?\d+(?:\.\d+)?),\s*Lng\s*(-?\d+(?:\.\d+)?)/i);
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+};
+
 const mapRowToReport = (row) => ({
   id: row.id,
   name: row.name,
   phoneNumber: row.phone_number,
   location: row.location,
+  accidentPoint: row.accident_point,
   accidentType: row.accident_type,
   description: row.description,
   imageDataUrl: row.image_data_url,
@@ -29,7 +41,7 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/reports', async (_req, res) => {
   const { data, error } = await supabase
     .from(reportsTable)
-    .select('id, name, phone_number, location, accident_type, description, image_data_url, created_at, status, lat, lng')
+    .select('id, name, phone_number, location, accident_point, accident_type, description, image_data_url, created_at, status, lat, lng')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -41,26 +53,28 @@ app.get('/api/reports', async (_req, res) => {
 });
 
 app.post('/api/reports', async (req, res) => {
-  const { name, phoneNumber, location, accidentType, description, imageDataUrl } = req.body || {};
+  const { name, phoneNumber, location, accidentPoint, accidentType, description, imageDataUrl } = req.body || {};
 
-  if (!name || !phoneNumber || !location || !accidentType || !description || !imageDataUrl) {
+  if (!name || !phoneNumber || !location || !accidentPoint || !accidentType || !description || !imageDataUrl) {
     res.status(400).json({ error: 'Missing required report fields' });
     return;
   }
 
   const createdAt = new Date().toISOString();
+  const coords = parseAccidentPointCoords(accidentPoint);
   const report = {
     id: createId(),
     name,
     phoneNumber,
     location,
+    accidentPoint,
     accidentType,
     description,
     imageDataUrl,
     createdAt,
     status: 'REPORTED',
-    lat: 23.215 + (Math.random() - 0.5) * 0.02,
-    lng: 72.637 + (Math.random() - 0.5) * 0.02,
+    lat: coords?.lat ?? 23.215 + (Math.random() - 0.5) * 0.02,
+    lng: coords?.lng ?? 72.637 + (Math.random() - 0.5) * 0.02,
   };
 
   const { error } = await supabase.from(reportsTable).insert({
@@ -68,6 +82,7 @@ app.post('/api/reports', async (req, res) => {
     name: report.name,
     phone_number: report.phoneNumber,
     location: report.location,
+    accident_point: report.accidentPoint,
     accident_type: report.accidentType,
     description: report.description,
     image_data_url: report.imageDataUrl,

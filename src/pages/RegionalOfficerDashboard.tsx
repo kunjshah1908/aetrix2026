@@ -353,6 +353,7 @@ export default function RegionalOfficerDashboard() {
               <p><strong>Name:</strong> {selectedReport.name}</p>
               <p><strong>Phone Number:</strong> {selectedReport.phoneNumber}</p>
               <p><strong>Location:</strong> {selectedReport.location}</p>
+              <p><strong>AccidentPoint:</strong> {selectedReport.accidentPoint}</p>
               <p><strong>Type of Accident:</strong> {selectedReport.accidentType}</p>
               <p><strong>Description:</strong> {selectedReport.description}</p>
               <p><strong>Submitted At:</strong> {new Date(selectedReport.createdAt).toLocaleString()}</p>
