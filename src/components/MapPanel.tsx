@@ -1,23 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { type Incident, officers, ambulances, diversionRoute } from '../data/staticData';
-
-const colorMap: Record<string, string> = {
-  CRITICAL: '#dc2626',
-  MAJOR: '#d97706',
-  MODERATE: '#ca8a04',
-  MINOR: '#2563eb',
-};
+import { type Incident, diversionRoute } from '../data/staticData';
 
 interface Props {
   incidents: Incident[];
   selectedId: string;
   onSelect: (id: string) => void;
   showDiversion: boolean;
+  showReportedMarkers?: boolean;
 }
 
-export default function MapPanel({ incidents, selectedId, onSelect, showDiversion }: Props) {
+export default function MapPanel({ incidents, selectedId, onSelect, showDiversion, showReportedMarkers = true }: Props) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Layer[]>([]);
@@ -56,44 +50,46 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
     markersRef.current.forEach(m => map.removeLayer(m));
     markersRef.current = [];
 
-    incidents.forEach(inc => {
-      const isSelected = inc.id === selectedId;
-      const size = isSelected ? 18 : 14;
-      const color = colorMap[inc.severity] || '#1a6fe0';
-      const border = isSelected ? '3px solid #1a6fe0' : '2px solid white';
+    const getIncidentLevel = (incident: Incident) => {
+      const type = (incident.type || '').toLowerCase();
+      if (type.includes('extreme') || incident.severity === 'CRITICAL') return 'extreme';
+      if (type.includes('medium') || type.includes('moderate') || incident.severity === 'MODERATE' || incident.severity === 'MAJOR') return 'moderate';
+      return 'mild';
+    };
 
-      const icon = L.divIcon({
+    const buildMarkerIcon = (incident: Incident, isSelected: boolean) => {
+      const size = isSelected ? 24 : 20;
+
+      if (incident.status === 'REPORTED') {
+        return L.divIcon({
+          className: '',
+          html: `<div class="map-marker-cross${isSelected ? ' selected' : ''}" style="width:${size}px;height:${size}px"><span></span><span></span></div>`,
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+        });
+      }
+
+      const level = getIncidentLevel(incident);
+      const blink = level === 'extreme' ? ' map-marker-blink' : '';
+      return L.divIcon({
         className: '',
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 4px rgba(0,0,0,0.2);"></div>`,
+        html: `<div class="map-marker-circle map-marker-${level}${blink}${isSelected ? ' selected' : ''}" style="width:${size}px;height:${size}px"></div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
       });
+    };
+
+    incidents
+      .filter((incident) => incident.status === 'ACTIVE' || (showReportedMarkers && incident.status === 'REPORTED'))
+      .forEach((inc) => {
+      const isSelected = inc.id === selectedId;
+      const icon = buildMarkerIcon(inc, isSelected);
 
       const marker = L.marker([inc.lat, inc.lng], { icon }).addTo(map);
       marker.on('click', () => onSelect(inc.id));
       markersRef.current.push(marker);
-    });
-
-    officers.forEach(ofc => {
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:10px;height:10px;background:#16a34a;border:1px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.15);"></div>`,
-        iconSize: [10, 10],
-        iconAnchor: [5, 5],
       });
-      markersRef.current.push(L.marker([ofc.lat, ofc.lng], { icon }).addTo(map));
-    });
-
-    ambulances.forEach(amb => {
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:10px;height:10px;background:#ffffff;border:2px solid #7a8299;box-shadow:0 1px 3px rgba(0,0,0,0.15);"></div>`,
-        iconSize: [10, 10],
-        iconAnchor: [5, 5],
-      });
-      markersRef.current.push(L.marker([amb.lat, amb.lng], { icon }).addTo(map));
-    });
-  }, [incidents, selectedId, onSelect]);
+  }, [incidents, selectedId, onSelect, showReportedMarkers]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -124,17 +120,23 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
       </div>
 
       <div className="map-legend">
+        {showReportedMarkers && (
+          <div className="map-legend-item">
+            <span className="legend-cross" />
+            <span>USER REPORTED</span>
+          </div>
+        )}
         <div className="map-legend-item">
-          <span className="legend-circle" style={{ background: '#dc2626' }} />
-          <span>INCIDENT</span>
+          <span className="legend-circle" style={{ background: '#facc15' }} />
+          <span>MILD VERIFIED</span>
         </div>
         <div className="map-legend-item">
-          <span className="legend-square" style={{ background: '#16a34a' }} />
-          <span>OFFICER</span>
+          <span className="legend-circle" style={{ background: '#f97316' }} />
+          <span>MODERATE VERIFIED</span>
         </div>
         <div className="map-legend-item">
-          <span className="legend-square" style={{ background: '#ffffff', border: '2px solid #7a8299' }} />
-          <span>AMBULANCE</span>
+          <span className="legend-circle" style={{ background: '#dc2626', boxShadow: '0 0 8px rgba(220,38,38,0.65)' }} />
+          <span>EXTREME VERIFIED</span>
         </div>
         <div className="map-legend-item">
           <span style={{ width: 18, height: 2, background: '#1a6fe0', display: 'inline-block' }} />

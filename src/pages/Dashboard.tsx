@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/Topbar';
 import Sidebar from '../components/Sidebar';
@@ -6,14 +6,14 @@ import MapPanel from '../components/MapPanel';
 import RightPanel from '../components/RightPanel';
 import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
-import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
+import { type Incident, type Severity, initialDecisionLog, type DecisionEntry, officers, type DecisionCardData } from '../data/staticData';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
+import { getUserReports, markReportSolved, toIncidentFromUserReport } from '../lib/reportDatabase';
 import { getSupabaseAuthClient } from '../lib/supabaseClient';
 import { loadSimulationData, getCurrentSnapshot, advanceStep } from '../lib/simulation';
 import { findNearestAvailableOfficer, computeDiversionRoute } from '../lib/algorithms';
 import { buildRoadGraph, type RoadGraph } from '../lib/roadGraph';
 import { type TrafficRow } from '../lib/types';
-import { officers, type DecisionCardData } from '../data/staticData';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,6 +23,8 @@ export default function Dashboard() {
   const [showDiversion, setShowDiversion] = useState(false);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
+
+  // Simulation & traffic state (from your version)
   const [trafficSnapshot, setTrafficSnapshot] = useState<TrafficRow[]>([]);
   const [roadGraph, setRoadGraph] = useState<RoadGraph | null>(null);
   const [nearestOfficer, setNearestOfficer] = useState<ReturnType<typeof findNearestAvailableOfficer>>(null);
@@ -30,24 +32,60 @@ export default function Dashboard() {
   const [liveDecisions, setLiveDecisions] = useState<DecisionCardData[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Incident enrichment logic (from your friend's version)
   const openIncident = incidents.find((incident) => incident.id === openIncidentId) || null;
   const selectedIncident = incidents.find(i => i.id === selectedId) || null;
+  const openIncidentEnrichment = openIncident?.enrichmentDetails;
+  const openIncidentAccidentTypes = openIncidentEnrichment?.accidentType?.filter(Boolean) || (openIncident?.confirmedAccidentType ? [openIncident.confirmedAccidentType] : []);
+  const openIncidentHasEnrichment = Boolean(
+    openIncidentEnrichment ||
+    openIncident?.confirmedSeverity ||
+    openIncidentAccidentTypes.length > 0 ||
+    openIncident?.description,
+  );
   const mapRef = useRef<HTMLDivElement>(null);
 
+  // Incident refresh logic (from your friend's version)
+  const refreshIncidents = useCallback(async () => {
+    try {
+      const reports = await getUserReports();
+      const baseIncidents = reports.map(toIncidentFromUserReport);
+      const visibleIncidents = baseIncidents.filter((incident) => incident.status === 'ACTIVE' || incident.status === 'REPORTED');
+
+      setIncidents(baseIncidents);
+      setSelectedId((prev) => {
+        if (visibleIncidents.length === 0) return '';
+        if (prev && visibleIncidents.some((item) => item.id === prev)) return prev;
+        return visibleIncidents[0].id;
+      });
+    } catch {
+      setIncidents([]);
+    }
+  }, []);
+
+  // Use both refreshIncidents and command center store for robustness
   useEffect(() => {
-    const loadIncidents = () => {
+    void refreshIncidents();
+    const timer = window.setInterval(() => {
+      void refreshIncidents();
+    }, 2000);
+
+    // Also listen to command center store updates
+    const unsubscribe = onCommandCenterIncidentsUpdated(() => {
       const stored = getCommandCenterIncidents();
       setIncidents(stored);
       if (stored.length > 0 && !stored.some((item) => item.id === selectedId)) {
         setSelectedId(stored[0].id);
       }
+    });
+
+    return () => {
+      window.clearInterval(timer);
+      unsubscribe();
     };
+  }, [refreshIncidents, selectedId]);
 
-    loadIncidents();
-    const unsubscribe = onCommandCenterIncidentsUpdated(loadIncidents);
-    return unsubscribe;
-  }, [selectedId]);
-
+  // Simulation/traffic logic (from your version)
   useEffect(() => {
     async function init() {
       await loadSimulationData();
@@ -78,6 +116,7 @@ export default function Dashboard() {
     setDiversionRoadNames(diversion?.roadNames || []);
   }, [selectedId, trafficSnapshot, roadGraph]);
 
+  // Handlers from both versions
   const handleDecisionApply = (entry: DecisionEntry) => {
     setDecisionLog(prev => [entry, ...prev]);
   };
@@ -108,6 +147,18 @@ export default function Dashboard() {
     navigate('/dashboard');
   };
 
+  const handleMarkSolved = async (incidentId: string) => {
+    try {
+      await markReportSolved(incidentId);
+      if (openIncidentId === incidentId) {
+        setOpenIncidentId(null);
+      }
+      await refreshIncidents();
+    } catch {
+      alert('Unable to mark this incident as solved. Please try again.');
+    }
+  };
+
   return (
     <div className="dashboard-page">
       <Topbar />
@@ -134,6 +185,7 @@ export default function Dashboard() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             showDiversion={showDiversion}
+            showReportedMarkers={false}
           />
           <RightPanel
             selectedId={selectedId}
@@ -150,6 +202,7 @@ export default function Dashboard() {
               selectedId={selectedId}
               onSelect={setSelectedId}
               onOpenIncident={setOpenIncidentId}
+              onMarkSolved={handleMarkSolved}
               onNewReport={() => setModalOpen(true)}
               onHistory={() => navigate('/history')}
               incidents={incidents}
@@ -211,23 +264,54 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
               <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.2)' }}>
                 <div style={{ fontSize: '12px', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px' }}>ENRICHMENT FORM</div>
-                {openIncident.enrichmentDetails ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px', color: 'var(--text-primary)', fontSize: '14px' }}>
-                    <div><strong>Confirmed Severity:</strong> {openIncident.enrichmentDetails.confirmedSeverity || '-'}</div>
-                    <div><strong>Accident Type:</strong> {openIncident.enrichmentDetails.accidentType.join(', ') || '-'}</div>
-                    <div><strong>Vehicles Involved:</strong> {openIncident.enrichmentDetails.vehiclesInvolved || '-'}</div>
-                    <div><strong>Casualties:</strong> {openIncident.enrichmentDetails.casualties || '-'}</div>
-                    <div><strong>Ambulance Required:</strong> {openIncident.enrichmentDetails.ambulanceRequired || '-'}</div>
-                    <div><strong>Traffic Flow:</strong> {openIncident.enrichmentDetails.trafficFlow || '-'}</div>
-                    <div><strong>Lane Blockage:</strong> {openIncident.enrichmentDetails.laneBlockage || '-'}</div>
-                    <div><strong>Road Type:</strong> {openIncident.enrichmentDetails.roadType || '-'}</div>
-                    <div><strong>Hazardous Material:</strong> {openIncident.enrichmentDetails.hazardousMaterial || '-'}</div>
-                    <div><strong>GPS Coordinates:</strong> {openIncident.enrichmentDetails.gpsCoordinates || '-'}</div>
-                    <div><strong>Officer Photos:</strong> {openIncident.enrichmentDetails.photoNames.length > 0 ? openIncident.enrichmentDetails.photoNames.join(', ') : '-'}</div>
-                    <div><strong>Officer Notes:</strong> {openIncident.enrichmentDetails.officerNotes || '-'}</div>
+                {openIncidentHasEnrichment ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '5px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, background: '#e0f2fe', color: '#075985', border: '1px solid #7dd3fc' }}>
+                        Confirmed Severity: {openIncidentEnrichment?.confirmedSeverity || openIncident?.confirmedSeverity || '-'}
+                      </span>
+                      {openIncidentAccidentTypes.map((type) => (
+                        <span key={type} style={{ display: 'inline-flex', alignItems: 'center', padding: '5px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+                          {type}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px', color: 'var(--text-primary)', fontSize: '14px' }}>
+                      <div><strong>Vehicles Involved:</strong> {openIncidentEnrichment?.vehiclesInvolved || '-'}</div>
+                      <div><strong>Casualties:</strong> {openIncidentEnrichment?.casualties || '-'}</div>
+                      <div><strong>Ambulance Required:</strong> {openIncidentEnrichment?.ambulanceRequired || '-'}</div>
+                      <div><strong>Traffic Flow:</strong> {openIncidentEnrichment?.trafficFlow || '-'}</div>
+                      <div><strong>Lane Blockage:</strong> {openIncidentEnrichment?.laneBlockage || '-'}</div>
+                      <div><strong>Road Type:</strong> {openIncidentEnrichment?.roadType || '-'}</div>
+                      <div><strong>Hazardous Material:</strong> {openIncidentEnrichment?.hazardousMaterial || '-'}</div>
+                      <div><strong>GPS Coordinates:</strong> {openIncidentEnrichment?.gpsCoordinates || '-'}</div>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid rgba(22,163,74,0.2)', paddingTop: '10px' }}>
+                      <div style={{ fontSize: '12px', letterSpacing: '0.07em', color: 'var(--text-secondary)', marginBottom: '6px' }}>OFFICER NOTES</div>
+                      <div style={{ color: 'var(--text-primary)', fontSize: '14px', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                        {openIncidentEnrichment?.officerNotes || openIncident?.description || '-'}
+                      </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid rgba(22,163,74,0.2)', paddingTop: '10px' }}>
+                      <div style={{ fontSize: '12px', letterSpacing: '0.07em', color: 'var(--text-secondary)', marginBottom: '6px' }}>OFFICER PHOTO UPDATES</div>
+                      {openIncidentEnrichment?.photoNames && openIncidentEnrichment.photoNames.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {openIncidentEnrichment.photoNames.map((photoName) => (
+                            <span key={photoName} style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px', borderRadius: '999px', fontSize: '12px', background: 'rgba(122,130,153,0.14)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}>
+                              {photoName}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No officer photo updates were submitted.</div>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div style={{ color: 'var(--text-secondary)' }}>No enrichment details submitted yet.</div>
+                  <div style={{ color: 'var(--text-secondary)' }}>Enrichment details are not available for this incident yet.</div>
                 )}
               </div>
 
