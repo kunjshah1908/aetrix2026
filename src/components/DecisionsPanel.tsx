@@ -48,7 +48,7 @@ export default function DecisionsPanel({ selectedId, onDecisionApply, onDiversio
       <div className="section-header">ACTIONS & DECISIONS</div>
       <div className="decisions-list">
         {decisions.length === 0 ? (
-          <div style={{ padding: '14px 0', color: 'var(--text-muted)', fontSize: 12 }}>
+          <div className="decisions-empty">
             No decisions pending for {selectedId}.
           </div>
         ) : (
