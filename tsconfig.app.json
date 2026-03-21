@@ -31,5 +31,5 @@
   },
   "include": [
     "src"
-  ]
+, "src/lib/simulation.ts"  ]
 }

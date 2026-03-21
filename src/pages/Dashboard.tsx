@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/Topbar';
 import Sidebar from '../components/Sidebar';
@@ -9,6 +9,11 @@ import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
 import { getSupabaseAuthClient } from '../lib/supabaseClient';
+import { loadSimulationData, getCurrentSnapshot, advanceStep } from '../lib/simulation';
+import { findNearestAvailableOfficer, computeDiversionRoute } from '../lib/algorithms';
+import { buildRoadGraph, type RoadGraph } from '../lib/roadGraph';
+import { type TrafficRow } from '../lib/types';
+import { officers, type DecisionCardData } from '../data/staticData';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -18,7 +23,16 @@ export default function Dashboard() {
   const [showDiversion, setShowDiversion] = useState(false);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
+  const [trafficSnapshot, setTrafficSnapshot] = useState<TrafficRow[]>([]);
+  const [roadGraph, setRoadGraph] = useState<RoadGraph | null>(null);
+  const [nearestOfficer, setNearestOfficer] = useState<ReturnType<typeof findNearestAvailableOfficer>>(null);
+  const [diversionRoadNames, setDiversionRoadNames] = useState<string[]>([]);
+  const [liveDecisions, setLiveDecisions] = useState<DecisionCardData[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const openIncident = incidents.find((incident) => incident.id === openIncidentId) || null;
+  const selectedIncident = incidents.find(i => i.id === selectedId) || null;
+  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadIncidents = () => {
@@ -33,6 +47,36 @@ export default function Dashboard() {
     const unsubscribe = onCommandCenterIncidentsUpdated(loadIncidents);
     return unsubscribe;
   }, [selectedId]);
+
+  useEffect(() => {
+    async function init() {
+      await loadSimulationData();
+      setTrafficSnapshot(getCurrentSnapshot());
+      const res = await fetch('/gandhinagar.geojson');
+      const geoJSON = await res.json();
+      const graph = buildRoadGraph(geoJSON);
+      setRoadGraph(graph);
+    }
+    init();
+  }, []);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      advanceStep();
+      setTrafficSnapshot(getCurrentSnapshot());
+    }, 5000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedIncident || !roadGraph) return;
+    const nearest = findNearestAvailableOfficer(selectedIncident, officers);
+    setNearestOfficer(nearest);
+    const destLat = selectedIncident.lat + 0.009;
+    const destLng = selectedIncident.lng + 0.009;
+    const diversion = computeDiversionRoute(roadGraph, selectedIncident.lat, selectedIncident.lng, destLat, destLng);
+    setDiversionRoadNames(diversion?.roadNames || []);
+  }, [selectedId, trafficSnapshot, roadGraph]);
 
   const handleDecisionApply = (entry: DecisionEntry) => {
     setDecisionLog(prev => [entry, ...prev]);
@@ -91,7 +135,14 @@ export default function Dashboard() {
             onSelect={setSelectedId}
             showDiversion={showDiversion}
           />
-          <RightPanel selectedId={selectedId} />
+          <RightPanel
+            selectedId={selectedId}
+            selectedIncident={selectedIncident}
+            trafficSnapshot={trafficSnapshot}
+            nearestOfficer={nearestOfficer}
+            diversionRoadNames={diversionRoadNames}
+            onLiveDecisions={setLiveDecisions}
+          />
         </div>
         <div className="dashboard-bottom">
           <div className="dashboard-bottom-left bottom-panel">
@@ -109,6 +160,7 @@ export default function Dashboard() {
               selectedId={selectedId}
               onDecisionApply={handleDecisionApply}
               onDiversionApply={() => setShowDiversion(true)}
+              liveDecisions={liveDecisions}
             />
           </div>
         </div>
