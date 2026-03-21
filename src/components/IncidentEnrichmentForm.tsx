@@ -4,9 +4,13 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
+import { type EnrichmentDetails, type Incident, type Severity } from '../data/staticData';
+import { upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
 
 interface Props {
   selectedId: string;
+  selectedIncident?: Incident;
+  onSubmitted?: (incidentId: string) => void;
 }
 
 const accidentTypes = [
@@ -21,7 +25,7 @@ const accidentTypes = [
   'Multi-vehicle pile-up',
 ];
 
-export default function IncidentEnrichmentForm({ selectedId }: Props) {
+export default function IncidentEnrichmentForm({ selectedId, selectedIncident, onSubmitted }: Props) {
   const [formData, setFormData] = useState({
     confirmedSeverity: '',
     accidentType: [] as string[],
@@ -63,8 +67,71 @@ export default function IncidentEnrichmentForm({ selectedId }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Enriched Report:', { selectedId, ...formData });
+
+    if (!selectedIncident) {
+      alert('Please select a reported incident first.');
+      return;
+    }
+
+    const severityMap: Record<string, Severity> = {
+      Minor: 'MINOR',
+      Moderate: 'MODERATE',
+      Major: 'MAJOR',
+      Critical: 'CRITICAL',
+    };
+
+    const mappedSeverity = severityMap[formData.confirmedSeverity] || selectedIncident.severity;
+    const enrichedType = formData.accidentType[0] || selectedIncident.type;
+    const enrichmentDetails: EnrichmentDetails = {
+      confirmedSeverity: formData.confirmedSeverity,
+      accidentType: [...formData.accidentType],
+      vehiclesInvolved: formData.vehiclesInvolved,
+      casualties: formData.casualties,
+      ambulanceRequired: formData.ambulanceRequired,
+      trafficFlow: formData.trafficFlow,
+      laneBlockage: formData.laneBlockage,
+      roadType: formData.roadType,
+      hazardousMaterial: formData.hazardousMaterial,
+      gpsCoordinates: formData.gpsCoordinates,
+      photoNames: formData.photos.map(photo => photo.name),
+      officerNotes: formData.officerNotes,
+    };
+
+    upsertCommandCenterIncident({
+      id: selectedIncident.id,
+      location: selectedIncident.location,
+      severity: mappedSeverity,
+      elapsed: '00:00:00',
+      status: 'ACTIVE',
+      lat: selectedIncident.lat,
+      lng: selectedIncident.lng,
+      type: enrichedType,
+      reporterName: selectedIncident.reporterName,
+      reporterPhone: selectedIncident.reporterPhone,
+      description: formData.officerNotes || selectedIncident.description,
+      reporterDescription: selectedIncident.reporterDescription || selectedIncident.description,
+      imageDataUrl: selectedIncident.imageDataUrl,
+      enrichmentDetails,
+    });
+
+    onSubmitted?.(selectedIncident.id);
+
     alert('Report enriched and sent to command center!');
+
+    setFormData({
+      confirmedSeverity: '',
+      accidentType: [],
+      vehiclesInvolved: '',
+      casualties: '',
+      ambulanceRequired: '',
+      trafficFlow: '',
+      laneBlockage: '',
+      roadType: '',
+      hazardousMaterial: '',
+      gpsCoordinates: '',
+      photos: [],
+      officerNotes: '',
+    });
   };
 
   return (
