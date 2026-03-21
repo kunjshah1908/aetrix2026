@@ -95,6 +95,18 @@ const toSeverity = (accidentType: UserAccidentType): Severity => {
   return 'MINOR';
 };
 
+const toElapsed = (createdAt: string): string => {
+  const created = new Date(createdAt).getTime();
+  if (Number.isNaN(created)) return '00:00:00';
+  const now = Date.now();
+  const diffMs = Math.max(0, now - created);
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 export const getUserReports = async (): Promise<UserReportRecord[]> => {
   try {
     const response = await fetch(apiUrl('/api/reports'));
@@ -165,7 +177,7 @@ export const toIncidentFromUserReport = (report: UserReportRecord): Incident => 
     id: report.id,
     location: report.location,
     severity: toSeverity(report.accidentType),
-    elapsed: '00:00:00',
+    elapsed: toElapsed(report.createdAt),
     status: report.status,
     lat: report.lat,
     lng: report.lng,

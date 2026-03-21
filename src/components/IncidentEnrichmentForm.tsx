@@ -11,6 +11,8 @@ interface Props {
   selectedId: string;
   selectedIncident?: Incident;
   onSubmitted?: (incidentId: string) => void;
+  formId?: string;
+  hideSubmitButton?: boolean;
 }
 
 const accidentTypes = [
@@ -25,7 +27,7 @@ const accidentTypes = [
   'Multi-vehicle pile-up',
 ];
 
-export default function IncidentEnrichmentForm({ selectedId, selectedIncident, onSubmitted }: Props) {
+export default function IncidentEnrichmentForm({ selectedId, selectedIncident, onSubmitted, formId, hideSubmitButton = false }: Props) {
   const [formData, setFormData] = useState({
     confirmedSeverity: '',
     accidentType: [] as string[],
@@ -116,8 +118,6 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
 
     onSubmitted?.(selectedIncident.id);
 
-    alert('Report enriched and sent to command center!');
-
     setFormData({
       confirmedSeverity: '',
       accidentType: [],
@@ -137,7 +137,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
   return (
     <div className="p-4 h-full overflow-y-auto">
       <h2 className="text-lg font-semibold mb-4 text-[var(--text-primary)]">Incident Enrichment Form</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="confirmedSeverity">Confirmed Severity *</Label>
           <Select onValueChange={value => handleSelectChange('confirmedSeverity', value)}>
@@ -308,9 +308,11 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
           />
         </div>
 
-        <Button type="submit" className="w-full" variant="primary">
-          Submit to Command Center
-        </Button>
+        {!hideSubmitButton && (
+          <Button type="submit" className="w-full" variant="primary">
+            Submit to Command Center
+          </Button>
+        )}
       </form>
     </div>
   );
