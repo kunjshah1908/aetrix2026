@@ -24,6 +24,8 @@ Frontend runs on http://localhost:8080.
 2. Open SQL Editor and run [server/supabase-schema.sql](server/supabase-schema.sql).
 	- This file now includes a safe migration for the `accident_point` column used by new reports.
 3. Copy [.env.example](.env.example) to .env and fill:
+	- VITE_SUPABASE_URL
+	- VITE_SUPABASE_ANON_KEY
 	- SUPABASE_URL
 	- SUPABASE_SERVICE_ROLE_KEY
 4. In another terminal run:
@@ -45,6 +47,34 @@ Backend runs on http://localhost:4000.
 - GET /api/reports
 - POST /api/reports
 - DELETE /api/reports/:id
+
+## Regional Officer Authentication
+
+- Route: `/regional` (login/signup)
+- Protected route: `/regional/dashboard`
+- Auth provider: Supabase email/password auth
+
+### Supabase Setup Steps
+
+1. In Supabase Dashboard, open Authentication -> Providers -> Email and enable Email provider.
+2. In Authentication -> URL Configuration, add your site URLs:
+	- Local: `http://localhost:8080`
+	- Production: `https://<your-vercel-domain>`
+3. In SQL Editor, run [server/supabase-schema.sql](server/supabase-schema.sql) to create/update:
+	- `public.user_reports`
+	- `public.regional_officer_profiles` with RLS policies
+4. In Supabase Project Settings -> API, copy:
+	- Project URL -> set as `VITE_SUPABASE_URL`
+	- anon public key -> set as `VITE_SUPABASE_ANON_KEY`
+5. Keep backend keys private:
+	- `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed in frontend code.
+
+### Create First Regional Officer Account
+
+1. Start app and open `/regional`.
+2. Click `Create New Account`.
+3. Enter login ID (email) and password.
+4. If email confirmation is enabled, verify from inbox and then login.
 
 ## Deploy on Vercel
 
