@@ -37,7 +37,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="dashboard-page">
       <Topbar />
       <div className="dashboard-layout">
         <div className="dashboard-top">
@@ -50,7 +50,7 @@ export default function Dashboard() {
           <RightPanel selectedId={selectedId} />
         </div>
         <div className="dashboard-bottom">
-          <div className="dashboard-bottom-left">
+          <div className="dashboard-bottom-left bottom-panel">
             <Sidebar
               selectedId={selectedId}
               onSelect={setSelectedId}
@@ -59,7 +59,7 @@ export default function Dashboard() {
               incidents={incidents}
             />
           </div>
-          <div className="dashboard-bottom-right">
+          <div className="dashboard-bottom-right bottom-panel">
             <DecisionsPanel
               selectedId={selectedId}
               onDecisionApply={handleDecisionApply}

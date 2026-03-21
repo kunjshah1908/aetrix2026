@@ -23,9 +23,9 @@ export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, 
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="sidebar-panel">
       <div className="section-header">ACTIVE INCIDENTS</div>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="incidents-list">
         {incidents.filter(i => i.status === 'ACTIVE' || i.status === 'REPORTED').map(inc => (
           <div
             key={inc.id}
