@@ -214,7 +214,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-page)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-page)', overflowY: 'auto' }}>
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: '10px' }}>
         <button
           onClick={() => navigate('/regional')}
@@ -245,7 +245,7 @@ export default function Landing() {
           Login as Command Center
         </button>
       </div>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '80px 16px 24px' }}>
         <div style={{ maxWidth: '500px', width: '100%', padding: '20px', background: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
           <h1 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--text-primary)' }}>Report an Accident</h1>
           <form onSubmit={handleSubmit}>
