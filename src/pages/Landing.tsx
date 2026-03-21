@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { addUserReport, type UserAccidentType } from '../lib/reportDatabase';
 
 export default function Landing() {
+  const MAX_UPLOAD_SIDE = 1280;
+  const UPLOAD_QUALITY = 0.78;
+
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -16,12 +19,40 @@ export default function Landing() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-    reader.onerror = () => reject(new Error('Failed to read selected image'));
-    reader.readAsDataURL(file);
-  });
+  const fileToCompressedDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        const maxDimension = Math.max(img.width, img.height);
+        const scale = maxDimension > MAX_UPLOAD_SIDE ? MAX_UPLOAD_SIDE / maxDimension : 1;
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Unable to process selected image.'));
+          return;
+        }
+
+        context.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL('image/jpeg', UPLOAD_QUALITY));
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Unable to read selected image.'));
+      };
+
+      img.src = objectUrl;
+    });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +64,7 @@ export default function Landing() {
     setIsSubmitting(true);
 
     try {
-      const imageDataUrl = await fileToDataUrl(image);
+      const imageDataUrl = await fileToCompressedDataUrl(image);
       await addUserReport({
         name,
         phoneNumber,
@@ -42,8 +73,9 @@ export default function Landing() {
         description,
         imageDataUrl,
       });
-    } catch {
-      alert('Unable to submit report. Please try again.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to submit report. Please try again.';
+      alert(message);
       setIsSubmitting(false);
       return;
     }
