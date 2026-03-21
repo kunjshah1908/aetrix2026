@@ -1,16 +1,16 @@
-import { useState } from 'react';
 import { type Incident } from '../data/staticData';
 
 interface Props {
   selectedId: string;
   onSelect: (id: string) => void;
+  onOpenReport: (id: string) => void;
   onVerify: (id: string) => void;
   onReject: (id: string) => void;
   onSkip: (id: string) => void;
   reports: Incident[];
 }
 
-export default function ReportsSidebar({ selectedId, onSelect, onVerify, onReject, onSkip, reports }: Props) {
+export default function ReportsSidebar({ selectedId, onSelect, onOpenReport, onVerify, onReject, onSkip, reports }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="section-header">ACTIVE REPORTINGS</div>
@@ -19,10 +19,15 @@ export default function ReportsSidebar({ selectedId, onSelect, onVerify, onRejec
           <div
             key={rep.id}
             className={`incident-card${selectedId === rep.id ? ' active' : ''}`}
-            onClick={() => onSelect(rep.id)}
+            onClick={() => {
+              onSelect(rep.id);
+              onOpenReport(rep.id);
+            }}
           >
             <div className="incident-id">{rep.id}</div>
-            <div className="incident-location">{rep.location}</div>
+            <div className="incident-location">Reported by: {rep.reporterName || 'Unknown'}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Location: {rep.location}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Type: {rep.type}</div>
             <div className="incident-meta">
               <span className="badge badge-moderate">{rep.severity}</span>
               <span className="incident-elapsed">{rep.elapsed}</span>
