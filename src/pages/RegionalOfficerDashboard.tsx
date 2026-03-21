@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/Topbar';
 import ReportsSidebar from '../components/ReportsSidebar';
 import MapPanel from '../components/MapPanel';
@@ -11,7 +10,6 @@ import { getUserReports, removeUserReport, toIncidentFromUserReport, type UserRe
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated } from '../lib/commandCenterIncidentStore';
 
 export default function RegionalOfficerDashboard() {
-  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [showDiversion, setShowDiversion] = useState(false);
@@ -25,9 +23,10 @@ export default function RegionalOfficerDashboard() {
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
-  const [selectedSubarea, setSelectedSubarea] = useState('Gandhinagar Central');
   const selectedIncident = reports.find((item) => item.id === selectedId);
   const enrichmentIncident = reports.find((item) => item.id === enrichmentTargetId);
+  const selectedReportIncident = selectedReport ? reports.find((item) => item.id === selectedReport.id) : null;
+  const enrichmentFormId = enrichmentTargetId ? `verification-enrichment-form-${enrichmentTargetId}` : 'verification-enrichment-form';
 
   useEffect(() => {
     const loadReports = async () => {
@@ -133,20 +132,6 @@ export default function RegionalOfficerDashboard() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Topbar />
-      <div style={{ padding: '10px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)' }}>
-        <label style={{ marginRight: '10px', color: 'var(--text-secondary)' }}>Select Subarea:</label>
-        <select
-          value={selectedSubarea}
-          onChange={(e) => setSelectedSubarea(e.target.value)}
-          style={{ padding: '5px', border: '1px solid var(--border-default)', borderRadius: '4px' }}
-        >
-          <option>Gandhinagar Central</option>
-          <option>Ahmedabad North</option>
-          <option>Ahmedabad South</option>
-          <option>Vadodara</option>
-          <option>Surat</option>
-        </select>
-      </div>
       {reportsError && (
         <div style={{ padding: '10px 20px', background: '#fef2f2', color: '#991b1b', borderBottom: '1px solid #fecaca' }}>
           {reportsError}
@@ -168,7 +153,6 @@ export default function RegionalOfficerDashboard() {
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 onOpenReport={handleOpenReport}
-                onVerify={handleVerify}
                 onVerification={handleOpenVerification}
                 onReject={handleReject}
                 verifiedReportIds={verifiedReportIds}
@@ -226,11 +210,29 @@ export default function RegionalOfficerDashboard() {
             <IncidentEnrichmentForm
               selectedId={enrichmentTargetId}
               selectedIncident={enrichmentIncident}
+              formId={enrichmentFormId}
+              hideSubmitButton
               onSubmitted={(incidentId) => {
                 handleEnrichmentSubmitted(incidentId);
+                handleVerify(incidentId);
                 setEnrichmentTargetId(null);
               }}
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '0 16px 16px' }}>
+              <button
+                onClick={() => setEnrichmentTargetId(null)}
+                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+              <button
+                type="submit"
+                form={enrichmentFormId}
+                style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', background: 'var(--accent-blue)', color: 'white', cursor: 'pointer' }}
+              >
+                Verify
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -238,19 +240,27 @@ export default function RegionalOfficerDashboard() {
         <div
           style={{
             position: 'fixed',
-            top: '16px',
-            right: '16px',
+            inset: 0,
             zIndex: 1200,
-            background: '#ecfdf5',
-            color: '#166534',
-            border: '1px solid #86efac',
-            borderRadius: '8px',
-            padding: '10px 12px',
-            fontSize: '13px',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
           }}
         >
-          {verifyMessage}
+          <div
+            style={{
+              background: '#ecfdf5',
+              color: '#166534',
+              border: '1px solid #86efac',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              boxShadow: '0 10px 26px rgba(0,0,0,0.2)',
+            }}
+          >
+            {verifyMessage}
+          </div>
         </div>
       )}
       {rejectTargetId && (
@@ -356,7 +366,7 @@ export default function RegionalOfficerDashboard() {
               <p><strong>AccidentPoint:</strong> {selectedReport.accidentPoint}</p>
               <p><strong>Type of Accident:</strong> {selectedReport.accidentType}</p>
               <p><strong>Description:</strong> {selectedReport.description}</p>
-              <p><strong>Submitted At:</strong> {new Date(selectedReport.createdAt).toLocaleString()}</p>
+              <p><strong>Elapsed:</strong> {selectedReportIncident?.elapsed || '00:00:00'}</p>
             </div>
 
             <div style={{ marginTop: '14px' }}>
