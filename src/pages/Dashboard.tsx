@@ -8,6 +8,7 @@ import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
+import { getSupabaseAuthClient } from '../lib/supabaseClient';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -53,9 +54,35 @@ export default function Dashboard() {
     setSelectedId(newId);
   };
 
+  const handleLogout = async () => {
+    try {
+      const supabase = getSupabaseAuthClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore and continue route fallback.
+    }
+    navigate('/dashboard');
+  };
+
   return (
     <div className="dashboard-page">
       <Topbar />
+      <div style={{ padding: '10px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '6px',
+            border: '1px solid var(--border-default)',
+            background: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          Logout
+        </button>
+      </div>
       <div className="dashboard-layout">
         <div className="dashboard-top">
           <MapPanel
