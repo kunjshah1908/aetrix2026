@@ -23,6 +23,7 @@ export default function RegionalOfficerDashboard() {
   const [verifiedReportIds, setVerifiedReportIds] = useState<string[]>([]);
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [enrichmentModalFor, setEnrichmentModalFor] = useState<string | null>(null);
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
   const [selectedSubarea, setSelectedSubarea] = useState('Gandhinagar Central');
   const selectedIncident = reports.find((item) => item.id === selectedId);
@@ -83,6 +84,7 @@ export default function RegionalOfficerDashboard() {
 
   const handleVerify = (id: string) => {
     setSelectedId(id);
+    setEnrichmentModalFor(id);
     setVerifyMessage('Verified Accident, Please fill the Enrichment Form');
     window.setTimeout(() => {
       setVerifyMessage('');
@@ -153,9 +155,6 @@ export default function RegionalOfficerDashboard() {
             onSelect={setSelectedId}
             showDiversion={showDiversion}
           />
-          <div className="right-panel">
-            <IncidentEnrichmentForm selectedId={selectedId} selectedIncident={selectedIncident} onSubmitted={handleEnrichmentSubmitted} />
-          </div>
         </div>
         <div className="dashboard-bottom">
           <div className="dashboard-bottom-left">
@@ -313,6 +312,55 @@ export default function RegionalOfficerDashboard() {
           </div>
         </div>
       )}
+
+      {enrichmentModalFor && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1250,
+            padding: '20px',
+          }}
+          onClick={() => setEnrichmentModalFor(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '700px',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              background: 'var(--bg-surface)',
+              borderRadius: '10px',
+              padding: '16px',
+              border: '1px solid var(--border-default)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Incident Enrichment (Report {enrichmentModalFor})</h3>
+              <button
+                onClick={() => setEnrichmentModalFor(null)}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                ×
+              </button>
+            </div>
+            <IncidentEnrichmentForm
+              selectedId={enrichmentModalFor}
+              selectedIncident={reports.find((item) => item.id === enrichmentModalFor) || null}
+              onSubmitted={(id) => {
+                handleEnrichmentSubmitted(id);
+                setEnrichmentModalFor(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <NewReportModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleNewReport} />
     </div>
   );

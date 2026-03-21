@@ -84,13 +84,13 @@ input, select, textarea, button {
   height: calc(100vh - var(--topbar-height));
 }
 .dashboard-top {
-  height: 60%;
+  height: 40%;
   min-height: 0;
   display: flex;
   position: relative;
 }
 .dashboard-bottom {
-  height: 40%;
+  height: 60%;
   min-height: 0;
   display: flex;
   gap: var(--dashboard-space);
@@ -137,7 +137,7 @@ input, select, textarea, button {
 
 /* MAP PANEL */
 .map-panel {
-  width: 60%;
+  width: 100%;
   overflow: hidden;
   position: relative;
 }
