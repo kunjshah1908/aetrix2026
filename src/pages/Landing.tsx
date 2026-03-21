@@ -10,6 +10,9 @@ export default function Landing() {
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [location, setLocation] = useState('');
+  const [accidentPoint, setAccidentPoint] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const [accidentType, setAccidentType] = useState<UserAccidentType>('Minor');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
@@ -18,6 +21,40 @@ export default function Landing() {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const formatCoords = (latitude: number, longitude: number) =>
+    `Lat ${latitude.toFixed(6)}, Lng ${longitude.toFixed(6)}`;
+
+  const requestCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Location services are not supported in this browser.');
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationError('');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = formatCoords(position.coords.latitude, position.coords.longitude);
+        setAccidentPoint(coords);
+        setIsLocating(false);
+      },
+      (error) => {
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? 'Location permission was denied. Please allow it to capture AccidentPoint.'
+            : 'Unable to get your current location. Please try again.';
+        setLocationError(message);
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 60000,
+      },
+    );
+  };
 
   const fileToCompressedDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -61,6 +98,11 @@ export default function Landing() {
       return;
     }
 
+    if (!accidentPoint) {
+      alert('AccidentPoint is required. Please allow location access and try again.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -69,6 +111,7 @@ export default function Landing() {
         name,
         phoneNumber,
         location,
+        accidentPoint,
         accidentType,
         description,
         imageDataUrl,
@@ -85,6 +128,8 @@ export default function Landing() {
     setName('');
     setPhoneNumber('');
     setLocation('');
+    setAccidentPoint('');
+    requestCurrentLocation();
     setAccidentType('Minor');
     setDescription('');
     setImage(null);
@@ -161,6 +206,8 @@ export default function Landing() {
   };
 
   useEffect(() => {
+    requestCurrentLocation();
+
     return () => {
       stopCamera();
     };
@@ -231,6 +278,41 @@ export default function Landing() {
                 required
                 style={{ width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', fontFamily: 'Merriweather, serif' }}
               />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>AccidentPoint</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={accidentPoint}
+                  readOnly
+                  required
+                  placeholder={isLocating ? 'Fetching current location...' : 'Automatic GPS accident point'}
+                  style={{ width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', fontFamily: 'Merriweather, serif' }}
+                />
+                <button
+                  type="button"
+                  onClick={requestCurrentLocation}
+                  disabled={isLocating}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    padding: '0 12px',
+                    border: '1px solid var(--border-default)',
+                    borderRadius: '4px',
+                    background: 'var(--bg-surface)',
+                    color: 'var(--text-primary)',
+                    cursor: isLocating ? 'not-allowed' : 'pointer',
+                    fontFamily: 'Merriweather, serif',
+                  }}
+                >
+                  {isLocating ? 'Locating...' : 'Use My Location'}
+                </button>
+              </div>
+              {(isLocating || locationError) && (
+                <div style={{ marginTop: '6px', fontSize: '12px', color: locationError ? '#d43f3a' : 'var(--text-secondary)' }}>
+                  {locationError || 'Getting your current location...'}
+                </div>
+              )}
             </div>
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Type of Accident</label>

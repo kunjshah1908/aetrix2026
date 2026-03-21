@@ -22,6 +22,7 @@ Frontend runs on http://localhost:8080.
 
 1. Create a Supabase project.
 2. Open SQL Editor and run [server/supabase-schema.sql](server/supabase-schema.sql).
+	- This file now includes a safe migration for the `accident_point` column used by new reports.
 3. Copy [.env.example](.env.example) to .env and fill:
 	- SUPABASE_URL
 	- SUPABASE_SERVICE_ROLE_KEY
