@@ -5,12 +5,13 @@ interface Props {
   onSelect: (id: string) => void;
   onOpenReport: (id: string) => void;
   onVerify: (id: string) => void;
+  onVerification: (id: string) => void;
   onReject: (id: string) => void;
   verifiedReportIds: string[];
   reports: Incident[];
 }
 
-export default function ReportsSidebar({ selectedId, onSelect, onOpenReport, onVerify, onReject, verifiedReportIds, reports }: Props) {
+export default function ReportsSidebar({ selectedId, onSelect, onOpenReport, onVerify, onVerification, onReject, verifiedReportIds, reports }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="section-header">ACTIVE REPORTINGS</div>
@@ -36,14 +37,16 @@ export default function ReportsSidebar({ selectedId, onSelect, onOpenReport, onV
               <span className="incident-elapsed">{rep.elapsed}</span>
             </div>
             {isVerified ? (
-              <div style={{ marginTop: '10px' }}>
+              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ display: 'inline-block', padding: '4px 8px', background: '#16a34a', color: 'white', borderRadius: '999px', fontSize: '12px', fontWeight: 600 }}>
                   Verified
                 </span>
+                <button onClick={(e) => { e.stopPropagation(); onVerification(rep.id); }} style={{ padding: '5px 10px', background: 'var(--brand-soft, #e8eef7)', color: 'var(--accent-blue)', border: '1px solid var(--accent-blue-dim)', borderRadius: '6px', cursor: 'pointer' }}>Verification</button>
               </div>
             ) : (
               <div style={{ marginTop: '10px', display: 'flex', gap: '5px' }}>
                 <button onClick={(e) => { e.stopPropagation(); onVerify(rep.id); }} style={{ padding: '5px 10px', background: 'var(--accent-blue)', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Verify</button>
+                <button onClick={(e) => { e.stopPropagation(); onVerification(rep.id); }} style={{ padding: '5px 10px', background: 'var(--brand-soft, #e8eef7)', color: 'var(--accent-blue)', border: '1px solid var(--accent-blue-dim)', borderRadius: '6px', cursor: 'pointer' }}>Verification</button>
                 <button onClick={(e) => { e.stopPropagation(); onReject(rep.id); }} style={{ padding: '5px 10px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Reject</button>
               </div>
             )}
