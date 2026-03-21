@@ -76,6 +76,27 @@ Backend runs on http://localhost:4000.
 3. Enter login ID (email) and password.
 4. If email confirmation is enabled, verify from inbox and then login.
 
+## Command Center Authentication
+
+- Route: `/dashboard` (login/signup)
+- Protected route: `/dashboard/home`
+- Auth provider: Supabase email/password auth
+
+### Supabase Setup For Command Center
+
+1. In SQL Editor, run [server/supabase-schema.sql](server/supabase-schema.sql).
+2. Confirm table exists:
+	- `public.command_center_profiles`
+3. Ensure env values are set (local `.env` and Vercel):
+	- `VITE_SUPABASE_URL`
+	- `VITE_SUPABASE_ANON_KEY`
+	- `SUPABASE_URL`
+	- `SUPABASE_SERVICE_ROLE_KEY`
+4. Open `/dashboard` and use:
+	- Login ID (email)
+	- Password
+	- Create New Account for first-time users
+
 ## Deploy on Vercel
 
 The repo now includes Vercel Functions under `api/` for production API routes.
