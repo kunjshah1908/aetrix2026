@@ -44,3 +44,24 @@ Backend runs on http://localhost:4000.
 - GET /api/reports
 - POST /api/reports
 - DELETE /api/reports/:id
+
+## Deploy on Vercel
+
+The repo now includes Vercel Functions under `api/` for production API routes.
+
+1. In Vercel project settings, add environment variables:
+	- `SUPABASE_URL`
+	- `SUPABASE_SERVICE_ROLE_KEY`
+2. Redeploy the project.
+3. Verify health check:
+
+```bash
+https://<your-vercel-domain>/api/health
+```
+
+You should receive JSON with `"configured": true`.
+
+### Important
+
+- Keep `VITE_API_BASE_URL` empty when API and frontend are served by the same Vercel domain.
+- If you previously committed a real Supabase service role key in any file, rotate it immediately in Supabase and update Vercel with the new key.

@@ -4,6 +4,9 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim();
 const API_ROOT = API_BASE_URL || '';
 const LOCAL_REPORTS_STORAGE_KEY = 'aetrix:userReports';
 
+const canUseLocalFallback = () =>
+  typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
 export type UserAccidentType = 'Minor' | 'Medium' | 'Extreme';
 
 export interface UserReportRecord {
@@ -92,12 +95,15 @@ export const getUserReports = async (): Promise<UserReportRecord[]> => {
   try {
     const response = await fetch(apiUrl('/api/reports'));
     if (!response.ok) {
-      throw new Error('Unable to load reports from backend');
+      throw new Error(`Unable to load reports from backend (HTTP ${response.status})`);
     }
 
     const reports = (await response.json()) as UserReportRecord[];
     return sortReportsNewestFirst(reports);
   } catch {
+    if (!canUseLocalFallback()) {
+      throw new Error('Unable to load reports from backend. Please check server deployment and environment variables.');
+    }
     return sortReportsNewestFirst(readLocalReports());
   }
 };
@@ -113,11 +119,15 @@ export const addUserReport = async (input: NewUserReportInput): Promise<UserRepo
     });
 
     if (!response.ok) {
-      throw new Error('Unable to create report in backend');
+      const errorText = await response.text();
+      throw new Error(errorText || `Unable to create report in backend (HTTP ${response.status})`);
     }
 
     return (await response.json()) as UserReportRecord;
-  } catch {
+  } catch (error) {
+    if (!canUseLocalFallback()) {
+      throw error;
+    }
     const fallbackReport = createFallbackReport(input);
     const existingReports = readLocalReports();
     writeLocalReports([fallbackReport, ...existingReports]);
@@ -132,11 +142,14 @@ export const removeUserReport = async (id: string): Promise<void> => {
     });
 
     if (!response.ok) {
-      throw new Error('Unable to delete report from backend');
+      throw new Error(`Unable to delete report from backend (HTTP ${response.status})`);
     }
 
     return;
   } catch {
+    if (!canUseLocalFallback()) {
+      throw new Error('Unable to delete report from backend. Please check server deployment and environment variables.');
+    }
     const existingReports = readLocalReports();
     const nextReports = existingReports.filter((report) => report.id !== id);
     writeLocalReports(nextReports);
