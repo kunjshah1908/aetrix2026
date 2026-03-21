@@ -5,6 +5,9 @@ create table if not exists public.user_reports (
   location text not null,
   accident_point text,
   accident_type text not null,
+  confirmed_severity text,
+  confirmed_accident_type text,
+  enrichment_details jsonb,
   description text not null,
   image_data_url text not null,
   created_at timestamptz not null default now(),
@@ -14,6 +17,9 @@ create table if not exists public.user_reports (
 );
 
 alter table public.user_reports add column if not exists accident_point text;
+alter table public.user_reports add column if not exists confirmed_severity text;
+alter table public.user_reports add column if not exists confirmed_accident_type text;
+alter table public.user_reports add column if not exists enrichment_details jsonb;
 update public.user_reports set accident_point = coalesce(accident_point, location) where accident_point is null;
 alter table public.user_reports alter column accident_point set not null;
 

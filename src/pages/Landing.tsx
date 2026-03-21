@@ -287,9 +287,9 @@ export default function Landing() {
                 <input
                   type="text"
                   value={accidentPoint}
-                  readOnly
+                  onChange={(e) => setAccidentPoint(e.target.value)}
                   required
-                  placeholder={isLocating ? 'Fetching current location...' : 'Automatic GPS accident point'}
+                  placeholder={isLocating ? 'Fetching current location...' : 'Lat 23.215000, Lng 72.637000'}
                   className="landing-input"
                 />
                 <button
@@ -305,6 +305,9 @@ export default function Landing() {
                 <div className={`landing-help ${locationError ? 'error' : ''}`}>
                   {locationError || 'Getting your current location...'}
                 </div>
+              )}
+              {!isLocating && !locationError && (
+                <div className="landing-help">You can edit AccidentPoint manually in the same format: Lat xx.xxxxxx, Lng yy.yyyyyy</div>
               )}
             </div>
             <div className="landing-field">
