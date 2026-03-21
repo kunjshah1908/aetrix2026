@@ -31,6 +31,7 @@ export const mapRowToReport = (row) => ({
   name: row.name,
   phoneNumber: row.phone_number,
   location: row.location,
+  accidentPoint: row.accident_point,
   accidentType: row.accident_type,
   description: row.description,
   imageDataUrl: row.image_data_url,
