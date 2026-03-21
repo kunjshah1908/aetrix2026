@@ -7,9 +7,10 @@ interface Props {
   onNewReport: () => void;
   onHistory: () => void;
   incidents: Incident[];
+  onOpenIncident?: (id: string) => void;
 }
 
-export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, incidents }: Props) {
+export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, incidents, onOpenIncident }: Props) {
   const [resolvedOpen, setResolvedOpen] = useState(false);
 
   const badgeClass = (s: string) => {
@@ -30,7 +31,10 @@ export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, 
           <div
             key={inc.id}
             className={`incident-card${selectedId === inc.id ? ' active' : ''}`}
-            onClick={() => onSelect(inc.id)}
+            onClick={() => {
+              onSelect(inc.id);
+              onOpenIncident?.(inc.id);
+            }}
           >
             <div className="incident-id">{inc.id}</div>
             <div className="incident-location">{inc.location}</div>
