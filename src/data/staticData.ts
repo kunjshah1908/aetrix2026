@@ -10,6 +10,10 @@ export interface Incident {
   lat: number;
   lng: number;
   type: string;
+  reporterName?: string;
+  reporterPhone?: string;
+  description?: string;
+  imageDataUrl?: string;
 }
 
 export interface Officer {

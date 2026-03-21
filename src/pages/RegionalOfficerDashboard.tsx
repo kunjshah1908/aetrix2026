@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/Topbar';
 import ReportsSidebar from '../components/ReportsSidebar';
@@ -6,40 +6,38 @@ import MapPanel from '../components/MapPanel';
 import IncidentEnrichmentForm from '../components/IncidentEnrichmentForm';
 import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
-import { activeIncidents, type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
-
-// Mock data for user reports
-const mockUserReports: Incident[] = [
-  {
-    id: 'REP-001',
-    location: 'Sector 15, Gandhinagar',
-    severity: 'MODERATE' as Severity,
-    elapsed: '00:15:00',
-    status: 'REPORTED',
-    lat: 23.215,
-    lng: 72.637,
-    type: 'Vehicle Accident',
-  },
-  {
-    id: 'REP-002',
-    location: 'Highway 8, Ahmedabad',
-    severity: 'MINOR' as Severity,
-    elapsed: '00:30:00',
-    status: 'REPORTED',
-    lat: 23.025,
-    lng: 72.571,
-    type: 'Road Debris',
-  },
-];
+import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
+import { getUserReports, removeUserReport, toIncidentFromUserReport, type UserReportRecord } from '../lib/reportDatabase';
 
 export default function RegionalOfficerDashboard() {
   const navigate = useNavigate();
-  const [selectedId, setSelectedId] = useState(mockUserReports[0].id);
+  const [selectedId, setSelectedId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [showDiversion, setShowDiversion] = useState(false);
-  const [reports, setReports] = useState<Incident[]>([...mockUserReports]);
+  const [reports, setReports] = useState<Incident[]>([]);
+  const [userReports, setUserReports] = useState<UserReportRecord[]>([]);
+  const [selectedReport, setSelectedReport] = useState<UserReportRecord | null>(null);
+  const [reportsError, setReportsError] = useState('');
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
   const [selectedSubarea, setSelectedSubarea] = useState('Gandhinagar Central');
+
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        const storedReports = await getUserReports();
+        setUserReports(storedReports);
+        const incidentReports = storedReports.map(toIncidentFromUserReport);
+        setReports(incidentReports);
+        if (incidentReports.length > 0) {
+          setSelectedId(incidentReports[0].id);
+        }
+      } catch {
+        setReportsError('Unable to load reports from backend. Please make sure API server is running.');
+      }
+    };
+
+    loadReports();
+  }, []);
 
   const handleDecisionApply = (entry: DecisionEntry) => {
     setDecisionLog(prev => [entry, ...prev]);
@@ -61,14 +59,30 @@ export default function RegionalOfficerDashboard() {
     setSelectedId(newId);
   };
 
+  const handleOpenReport = (id: string) => {
+    const report = userReports.find((item) => item.id === id) || null;
+    setSelectedReport(report);
+  };
+
   const handleVerify = (id: string) => {
     // Logic to verify and open in reporting space
     setSelectedId(id);
     // Perhaps open a modal or switch view
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
+    try {
+      await removeUserReport(id);
+    } catch {
+      alert('Could not remove report from backend.');
+      return;
+    }
+
     setReports(prev => prev.filter(r => r.id !== id));
+    setUserReports(prev => prev.filter(report => report.id !== id));
+    if (selectedReport?.id === id) {
+      setSelectedReport(null);
+    }
   };
 
   const handleSkip = (id: string) => {
@@ -92,6 +106,11 @@ export default function RegionalOfficerDashboard() {
           <option>Surat</option>
         </select>
       </div>
+      {reportsError && (
+        <div style={{ padding: '10px 20px', background: '#fef2f2', color: '#991b1b', borderBottom: '1px solid #fecaca' }}>
+          {reportsError}
+        </div>
+      )}
       <div className="dashboard-layout">
         <div className="dashboard-top">
           <MapPanel
@@ -109,6 +128,7 @@ export default function RegionalOfficerDashboard() {
             <ReportsSidebar
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onOpenReport={handleOpenReport}
               onVerify={handleVerify}
               onReject={handleReject}
               onSkip={handleSkip}
@@ -124,6 +144,65 @@ export default function RegionalOfficerDashboard() {
           </div>
         </div>
       </div>
+      {selectedReport && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={() => setSelectedReport(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '700px',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              background: 'var(--bg-surface)',
+              borderRadius: '10px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+              padding: '20px',
+              border: '1px solid var(--border-default)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>User Report Details</h3>
+              <button
+                onClick={() => setSelectedReport(null)}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              <p><strong>Report ID:</strong> {selectedReport.id}</p>
+              <p><strong>Name:</strong> {selectedReport.name}</p>
+              <p><strong>Phone Number:</strong> {selectedReport.phoneNumber}</p>
+              <p><strong>Location:</strong> {selectedReport.location}</p>
+              <p><strong>Type of Accident:</strong> {selectedReport.accidentType}</p>
+              <p><strong>Description:</strong> {selectedReport.description}</p>
+              <p><strong>Submitted At:</strong> {new Date(selectedReport.createdAt).toLocaleString()}</p>
+            </div>
+
+            <div style={{ marginTop: '14px' }}>
+              <div style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>Uploaded Photo</div>
+              <img
+                src={selectedReport.imageDataUrl}
+                alt="Reported accident"
+                style={{ width: '100%', maxHeight: '360px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-default)' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <NewReportModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleNewReport} />
     </div>
   );
