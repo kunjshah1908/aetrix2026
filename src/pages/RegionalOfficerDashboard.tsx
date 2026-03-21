@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/Topbar';
 import ReportsSidebar from '../components/ReportsSidebar';
 import MapPanel from '../components/MapPanel';
@@ -9,10 +8,8 @@ import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
 import { getUserReports, removeUserReport, toIncidentFromUserReport, type UserReportRecord } from '../lib/reportDatabase';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated } from '../lib/commandCenterIncidentStore';
-import { getSupabaseAuthClient } from '../lib/supabaseClient';
 
 export default function RegionalOfficerDashboard() {
-  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [showDiversion, setShowDiversion] = useState(false);
@@ -21,12 +18,15 @@ export default function RegionalOfficerDashboard() {
   const [selectedReport, setSelectedReport] = useState<UserReportRecord | null>(null);
   const [reportsError, setReportsError] = useState('');
   const [verifyMessage, setVerifyMessage] = useState('');
+  const [enrichmentTargetId, setEnrichmentTargetId] = useState<string | null>(null);
   const [verifiedReportIds, setVerifiedReportIds] = useState<string[]>([]);
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
-  const [selectedSubarea, setSelectedSubarea] = useState('Gandhinagar Central');
   const selectedIncident = reports.find((item) => item.id === selectedId);
+  const enrichmentIncident = reports.find((item) => item.id === enrichmentTargetId);
+  const selectedReportIncident = selectedReport ? reports.find((item) => item.id === selectedReport.id) : null;
+  const enrichmentFormId = enrichmentTargetId ? `verification-enrichment-form-${enrichmentTargetId}` : 'verification-enrichment-form';
 
   useEffect(() => {
     const loadReports = async () => {
@@ -90,6 +90,11 @@ export default function RegionalOfficerDashboard() {
     }, 2500);
   };
 
+  const handleOpenVerification = (id: string) => {
+    setSelectedId(id);
+    setEnrichmentTargetId(id);
+  };
+
   const handleReject = (id: string) => {
     setRejectTargetId(id);
     setRejectReason('');
@@ -124,81 +129,40 @@ export default function RegionalOfficerDashboard() {
     setVerifiedReportIds(prev => (prev.includes(incidentId) ? prev : [...prev, incidentId]));
   };
 
-  const handleLogout = async () => {
-    try {
-      const supabase = getSupabaseAuthClient();
-      await supabase.auth.signOut();
-    } catch {
-      // Ignore and continue route fallback.
-    }
-    navigate('/regional');
-  };
-
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Topbar />
-      <div style={{ padding: '10px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-          <div>
-            <label style={{ marginRight: '10px', color: 'var(--text-secondary)' }}>Select Subarea:</label>
-            <select
-              value={selectedSubarea}
-              onChange={(e) => setSelectedSubarea(e.target.value)}
-              style={{ padding: '5px', border: '1px solid var(--border-default)', borderRadius: '4px' }}
-            >
-              <option>Gandhinagar Central</option>
-              <option>Ahmedabad North</option>
-              <option>Ahmedabad South</option>
-              <option>Vadodara</option>
-              <option>Surat</option>
-            </select>
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: '1px solid var(--border-default)',
-              background: 'var(--bg-surface)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
       {reportsError && (
         <div style={{ padding: '10px 20px', background: '#fef2f2', color: '#991b1b', borderBottom: '1px solid #fecaca' }}>
           {reportsError}
         </div>
       )}
-      <div className="dashboard-layout">
-        <div className="dashboard-top">
-          <MapPanel
-            incidents={reports}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            showDiversion={showDiversion}
-          />
-          <div className="right-panel">
-            <IncidentEnrichmentForm selectedId={selectedId} selectedIncident={selectedIncident} onSubmitted={handleEnrichmentSubmitted} />
-          </div>
-        </div>
-        <div className="dashboard-bottom">
-          <div className="dashboard-bottom-left">
-            <ReportsSidebar
+      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+        <div style={{ width: '60%', minWidth: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border-default)' }}>
+          <div style={{ height: '60%', minHeight: 0 }}>
+            <MapPanel
+              incidents={reports}
               selectedId={selectedId}
               onSelect={setSelectedId}
-              onOpenReport={handleOpenReport}
-              onVerify={handleVerify}
-              onReject={handleReject}
-              verifiedReportIds={verifiedReportIds}
-              reports={reports}
+              showDiversion={showDiversion}
             />
           </div>
-          <div className="dashboard-bottom-right">
+          <div style={{ height: '40%', minHeight: 0, padding: '12px', background: 'var(--bg-page)', borderTop: '1px solid var(--border-default)' }}>
+            <div className="bottom-panel" style={{ height: '100%' }}>
+              <ReportsSidebar
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onOpenReport={handleOpenReport}
+                onVerification={handleOpenVerification}
+                onReject={handleReject}
+                verifiedReportIds={verifiedReportIds}
+                reports={reports}
+              />
+            </div>
+          </div>
+        </div>
+        <div style={{ width: '40%', minWidth: 0, padding: '12px', background: 'var(--bg-page)' }}>
+          <div className="bottom-panel" style={{ height: '100%' }}>
             <DecisionsPanel
               selectedId={selectedId}
               onDecisionApply={handleDecisionApply}
@@ -207,23 +171,96 @@ export default function RegionalOfficerDashboard() {
           </div>
         </div>
       </div>
+      {enrichmentTargetId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1250,
+            padding: '20px',
+          }}
+          onClick={() => setEnrichmentTargetId(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '900px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: 'var(--bg-surface)',
+              borderRadius: '12px',
+              border: '1px solid var(--border-default)',
+              boxShadow: '0 16px 36px rgba(0,0,0,0.3)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border-default)' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Verification - Incident Enrichment Form</h3>
+              <button
+                onClick={() => setEnrichmentTargetId(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+            <IncidentEnrichmentForm
+              selectedId={enrichmentTargetId}
+              selectedIncident={enrichmentIncident}
+              formId={enrichmentFormId}
+              hideSubmitButton
+              onSubmitted={(incidentId) => {
+                handleEnrichmentSubmitted(incidentId);
+                handleVerify(incidentId);
+                setEnrichmentTargetId(null);
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '0 16px 16px' }}>
+              <button
+                onClick={() => setEnrichmentTargetId(null)}
+                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+              <button
+                type="submit"
+                form={enrichmentFormId}
+                style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', background: 'var(--accent-blue)', color: 'white', cursor: 'pointer' }}
+              >
+                Verify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {verifyMessage && (
         <div
           style={{
             position: 'fixed',
-            top: '16px',
-            right: '16px',
+            inset: 0,
             zIndex: 1200,
-            background: '#ecfdf5',
-            color: '#166534',
-            border: '1px solid #86efac',
-            borderRadius: '8px',
-            padding: '10px 12px',
-            fontSize: '13px',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
           }}
         >
-          {verifyMessage}
+          <div
+            style={{
+              background: '#ecfdf5',
+              color: '#166534',
+              border: '1px solid #86efac',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              boxShadow: '0 10px 26px rgba(0,0,0,0.2)',
+            }}
+          >
+            {verifyMessage}
+          </div>
         </div>
       )}
       {rejectTargetId && (
@@ -329,7 +366,7 @@ export default function RegionalOfficerDashboard() {
               <p><strong>AccidentPoint:</strong> {selectedReport.accidentPoint}</p>
               <p><strong>Type of Accident:</strong> {selectedReport.accidentType}</p>
               <p><strong>Description:</strong> {selectedReport.description}</p>
-              <p><strong>Submitted At:</strong> {new Date(selectedReport.createdAt).toLocaleString()}</p>
+              <p><strong>Elapsed:</strong> {selectedReportIncident?.elapsed || '00:00:00'}</p>
             </div>
 
             <div style={{ marginTop: '14px' }}>

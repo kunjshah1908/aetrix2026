@@ -457,7 +457,9 @@ input, select, textarea, button {
 
 /* MAP PANEL */
 .map-panel {
-  width: 60%;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
   overflow: hidden;
   position: relative;
 }

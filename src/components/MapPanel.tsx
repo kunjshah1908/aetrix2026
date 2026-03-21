@@ -31,8 +31,22 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
     }).addTo(map);
+    // Ensure tiles render correctly after flex/layout calculations settle.
+    window.setTimeout(() => map.invalidateSize(), 0);
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const handleResize = () => map.invalidateSize();
+    window.addEventListener('resize', handleResize);
+    const timer = window.setTimeout(handleResize, 120);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
