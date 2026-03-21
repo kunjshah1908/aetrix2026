@@ -8,6 +8,7 @@ import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
 import { getUserReports, removeUserReport, toIncidentFromUserReport, type UserReportRecord } from '../lib/reportDatabase';
+import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated } from '../lib/commandCenterIncidentStore';
 
 export default function RegionalOfficerDashboard() {
   const navigate = useNavigate();
@@ -18,8 +19,13 @@ export default function RegionalOfficerDashboard() {
   const [userReports, setUserReports] = useState<UserReportRecord[]>([]);
   const [selectedReport, setSelectedReport] = useState<UserReportRecord | null>(null);
   const [reportsError, setReportsError] = useState('');
+  const [verifyMessage, setVerifyMessage] = useState('');
+  const [verifiedReportIds, setVerifiedReportIds] = useState<string[]>([]);
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
   const [selectedSubarea, setSelectedSubarea] = useState('Gandhinagar Central');
+  const selectedIncident = reports.find((item) => item.id === selectedId);
 
   useEffect(() => {
     const loadReports = async () => {
@@ -37,6 +43,17 @@ export default function RegionalOfficerDashboard() {
     };
 
     loadReports();
+  }, []);
+
+  useEffect(() => {
+    const syncVerifiedIds = () => {
+      const submittedToCommandCenter = getCommandCenterIncidents();
+      setVerifiedReportIds(submittedToCommandCenter.map((incident) => incident.id));
+    };
+
+    syncVerifiedIds();
+    const unsubscribe = onCommandCenterIncidentsUpdated(syncVerifiedIds);
+    return unsubscribe;
   }, []);
 
   const handleDecisionApply = (entry: DecisionEntry) => {
@@ -65,28 +82,45 @@ export default function RegionalOfficerDashboard() {
   };
 
   const handleVerify = (id: string) => {
-    // Logic to verify and open in reporting space
     setSelectedId(id);
-    // Perhaps open a modal or switch view
+    setVerifyMessage('Verified Accident, Please fill the Enrichment Form');
+    window.setTimeout(() => {
+      setVerifyMessage('');
+    }, 2500);
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = (id: string) => {
+    setRejectTargetId(id);
+    setRejectReason('');
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectTargetId) return;
+    if (!rejectReason.trim()) {
+      alert('Please enter a reason for rejection.');
+      return;
+    }
+
     try {
-      await removeUserReport(id);
+      await removeUserReport(rejectTargetId);
     } catch {
       alert('Could not remove report from backend.');
       return;
     }
 
-    setReports(prev => prev.filter(r => r.id !== id));
-    setUserReports(prev => prev.filter(report => report.id !== id));
-    if (selectedReport?.id === id) {
+    setReports(prev => prev.filter(r => r.id !== rejectTargetId));
+    setUserReports(prev => prev.filter(report => report.id !== rejectTargetId));
+    setVerifiedReportIds(prev => prev.filter(id => id !== rejectTargetId));
+    if (selectedReport?.id === rejectTargetId) {
       setSelectedReport(null);
     }
+
+    setRejectTargetId(null);
+    setRejectReason('');
   };
 
-  const handleSkip = (id: string) => {
-    // Skip logic, maybe mark as skipped
+  const handleEnrichmentSubmitted = (incidentId: string) => {
+    setVerifiedReportIds(prev => (prev.includes(incidentId) ? prev : [...prev, incidentId]));
   };
 
   return (
@@ -120,7 +154,7 @@ export default function RegionalOfficerDashboard() {
             showDiversion={showDiversion}
           />
           <div className="right-panel">
-            <IncidentEnrichmentForm selectedId={selectedId} />
+            <IncidentEnrichmentForm selectedId={selectedId} selectedIncident={selectedIncident} onSubmitted={handleEnrichmentSubmitted} />
           </div>
         </div>
         <div className="dashboard-bottom">
@@ -131,7 +165,7 @@ export default function RegionalOfficerDashboard() {
               onOpenReport={handleOpenReport}
               onVerify={handleVerify}
               onReject={handleReject}
-              onSkip={handleSkip}
+              verifiedReportIds={verifiedReportIds}
               reports={reports}
             />
           </div>
@@ -144,6 +178,82 @@ export default function RegionalOfficerDashboard() {
           </div>
         </div>
       </div>
+      {verifyMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '16px',
+            right: '16px',
+            zIndex: 1200,
+            background: '#ecfdf5',
+            color: '#166534',
+            border: '1px solid #86efac',
+            borderRadius: '8px',
+            padding: '10px 12px',
+            fontSize: '13px',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+          }}
+        >
+          {verifyMessage}
+        </div>
+      )}
+      {rejectTargetId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1300,
+            padding: '20px',
+          }}
+          onClick={() => setRejectTargetId(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: 'var(--bg-surface)',
+              borderRadius: '10px',
+              border: '1px solid var(--border-default)',
+              padding: '16px',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '10px', color: 'var(--text-primary)' }}>Reason for Rejection</h3>
+            <textarea
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              placeholder="Enter reason for rejecting this accident report"
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid var(--border-default)',
+                borderRadius: '6px',
+                fontFamily: 'Merriweather, serif',
+                resize: 'vertical',
+              }}
+            />
+            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setRejectTargetId(null)}
+                style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--border-default)', background: 'transparent', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', background: '#dc2626', color: 'white', cursor: 'pointer' }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {selectedReport && (
         <div
           style={{

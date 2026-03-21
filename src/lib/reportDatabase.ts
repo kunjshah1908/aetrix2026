@@ -85,6 +85,7 @@ export const toIncidentFromUserReport = (report: UserReportRecord): Incident => 
     reporterName: report.name,
     reporterPhone: report.phoneNumber,
     description: report.description,
+    reporterDescription: report.description,
     imageDataUrl: report.imageDataUrl,
   };
 };
