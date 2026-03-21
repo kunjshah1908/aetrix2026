@@ -226,130 +226,91 @@ export default function Landing() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-page)', overflowY: 'auto' }}>
+    <div className="landing-report-page">
       {submitSuccessMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '16px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1250,
-            background: '#ecfdf5',
-            color: '#166534',
-            border: '1px solid #86efac',
-            borderRadius: '8px',
-            padding: '10px 14px',
-            boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-            fontSize: '13px',
-          }}
-        >
+        <div className="landing-submit-toast">
           {submitSuccessMessage}
         </div>
       )}
-      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: '10px' }}>
+      <div className="landing-top-actions">
         <button
           onClick={() => navigate('/regional')}
-          style={{
-            padding: '8px 16px',
-            background: 'var(--accent-blue)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
+          className="landing-top-btn"
         >
           Login as Regional Officer
         </button>
         <button
           onClick={() => navigate('/dashboard')}
-          style={{
-            padding: '8px 16px',
-            background: 'var(--accent-blue)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
+          className="landing-top-btn"
         >
           Login as Command Center
         </button>
       </div>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '80px 16px 24px' }}>
-        <div style={{ maxWidth: '500px', width: '100%', padding: '20px', background: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-          <h1 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--text-primary)' }}>Report an Accident</h1>
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Name</label>
+      <div className="landing-form-shell">
+        <div className="landing-form-card">
+          <h1 className="landing-form-title">Report an Accident</h1>
+          <p className="landing-form-subtitle">Fast lane reporting for real-world incidents. Fill key details and dispatch faster.</p>
+          <form className="landing-form" onSubmit={handleSubmit}>
+            <div className="landing-field">
+              <label className="landing-label">Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                style={{ width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', fontFamily: 'Merriweather, serif' }}
+                className="landing-input"
               />
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Phone Number</label>
+            <div className="landing-field">
+              <label className="landing-label">Phone Number</label>
               <input
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 required
-                style={{ width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', fontFamily: 'Merriweather, serif' }}
+                className="landing-input"
               />
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Location</label>
+            <div className="landing-field">
+              <label className="landing-label">Location</label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 required
-                style={{ width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', fontFamily: 'Merriweather, serif' }}
+                className="landing-input"
               />
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>AccidentPoint</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="landing-field">
+              <label className="landing-label">AccidentPoint</label>
+              <div className="landing-point-row">
                 <input
                   type="text"
                   value={accidentPoint}
                   readOnly
                   required
                   placeholder={isLocating ? 'Fetching current location...' : 'Automatic GPS accident point'}
-                  style={{ width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', fontFamily: 'Merriweather, serif' }}
+                  className="landing-input"
                 />
                 <button
                   type="button"
                   onClick={requestCurrentLocation}
                   disabled={isLocating}
-                  style={{
-                    whiteSpace: 'nowrap',
-                    padding: '0 12px',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: '4px',
-                    background: 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    cursor: isLocating ? 'not-allowed' : 'pointer',
-                    fontFamily: 'Merriweather, serif',
-                  }}
+                  className="landing-secondary-btn"
                 >
                   {isLocating ? 'Locating...' : 'Use My Location'}
                 </button>
               </div>
               {(isLocating || locationError) && (
-                <div style={{ marginTop: '6px', fontSize: '12px', color: locationError ? '#d43f3a' : 'var(--text-secondary)' }}>
+                <div className={`landing-help ${locationError ? 'error' : ''}`}>
                   {locationError || 'Getting your current location...'}
                 </div>
               )}
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Type of Accident</label>
-              <div style={{ display: 'flex', gap: '20px', color: 'var(--text-secondary)' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div className="landing-field">
+              <label className="landing-label">Type of Accident</label>
+              <div className="landing-radio-row">
+                <label className="landing-radio-option">
                   <input
                     type="radio"
                     name="accidentType"
@@ -360,7 +321,7 @@ export default function Landing() {
                   />
                   Minor
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label className="landing-radio-option">
                   <input
                     type="radio"
                     name="accidentType"
@@ -370,7 +331,7 @@ export default function Landing() {
                   />
                   Medium
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label className="landing-radio-option">
                   <input
                     type="radio"
                     name="accidentType"
@@ -382,48 +343,30 @@ export default function Landing() {
                 </label>
               </div>
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Description</label>
+            <div className="landing-field">
+              <label className="landing-label">Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
                 rows={4}
-                style={{ width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', fontFamily: 'Merriweather, serif' }}
+                className="landing-input landing-textarea"
               />
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Photo</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="landing-field">
+              <label className="landing-label">Photo</label>
+              <div className="landing-photo-row">
                 <button
                   type="button"
                   onClick={() => uploadInputRef.current?.click()}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: '4px',
-                    background: 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    fontFamily: 'Merriweather, serif',
-                  }}
+                  className="landing-photo-btn"
                 >
                   Upload Photo
                 </button>
                 <button
                   type="button"
                   onClick={openCamera}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: '4px',
-                    background: 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    fontFamily: 'Merriweather, serif',
-                  }}
+                  className="landing-photo-btn"
                 >
                   Take Photo
                 </button>
@@ -435,24 +378,14 @@ export default function Landing() {
                 onChange={handleImageChange}
                 style={{ display: 'none' }}
               />
-              <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+              <div className={`landing-photo-meta ${image ? 'selected' : ''}`}>
                 {image ? `Selected: ${image.name}` : 'No photo selected yet'}
               </div>
             </div>
             <button
               type="submit"
               disabled={isSubmitting}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: isSubmitting ? '#7a8299' : 'var(--accent-blue)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                fontSize: '16px',
-                fontFamily: 'Merriweather, serif',
-              }}
+              className="landing-submit-btn"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Report'}
             </button>
