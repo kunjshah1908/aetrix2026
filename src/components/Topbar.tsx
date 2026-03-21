@@ -14,8 +14,8 @@ export default function Topbar() {
   return (
     <div className="topbar">
       <div className="topbar-left">
-        <span className="topbar-logo text-secondary">TRAFFICAI</span>
-        <span className="topbar-city">GANDHINAGAR · CENTRAL COMMAND</span>
+        <span className="topbar-logo text-secondary">URBAN PULSE</span>
+        <span className="topbar-city">WHERE EVERY INCIDENT FINDS IT'S COMMAND</span>
       </div>
       <div className="topbar-right">
         <span className="topbar-indicator">
