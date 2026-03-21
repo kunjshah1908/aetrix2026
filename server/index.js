@@ -26,6 +26,9 @@ const mapRowToReport = (row) => ({
   location: row.location,
   accidentPoint: row.accident_point,
   accidentType: row.accident_type,
+  confirmedSeverity: row.confirmed_severity,
+  confirmedAccidentType: row.confirmed_accident_type,
+  enrichmentDetails: row.enrichment_details || null,
   description: row.description,
   imageDataUrl: row.image_data_url,
   createdAt: row.created_at,
@@ -41,7 +44,7 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/reports', async (_req, res) => {
   const { data, error } = await supabase
     .from(reportsTable)
-    .select('id, name, phone_number, location, accident_point, accident_type, description, image_data_url, created_at, status, lat, lng')
+    .select('id, name, phone_number, location, accident_point, accident_type, confirmed_severity, confirmed_accident_type, enrichment_details, description, image_data_url, created_at, status, lat, lng')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -69,6 +72,9 @@ app.post('/api/reports', async (req, res) => {
     location,
     accidentPoint,
     accidentType,
+    confirmedSeverity: null,
+    confirmedAccidentType: null,
+    enrichmentDetails: null,
     description,
     imageDataUrl,
     createdAt,
@@ -84,6 +90,9 @@ app.post('/api/reports', async (req, res) => {
     location: report.location,
     accident_point: report.accidentPoint,
     accident_type: report.accidentType,
+    confirmed_severity: report.confirmedSeverity,
+    confirmed_accident_type: report.confirmedAccidentType,
+    enrichment_details: report.enrichmentDetails,
     description: report.description,
     image_data_url: report.imageDataUrl,
     created_at: report.createdAt,
@@ -98,6 +107,51 @@ app.post('/api/reports', async (req, res) => {
   }
 
   res.status(201).json(report);
+});
+
+app.patch('/api/reports/:id', async (req, res) => {
+  const { id } = req.params;
+  const status = req.body?.status;
+  const confirmedSeverity = req.body?.confirmedSeverity;
+  const confirmedAccidentType = req.body?.confirmedAccidentType;
+  const enrichmentDetails = req.body?.enrichmentDetails;
+
+  if (status !== 'ACTIVE' && status !== 'RESOLVED') {
+    res.status(400).json({ error: 'Only ACTIVE or RESOLVED status updates are supported' });
+    return;
+  }
+
+  const updatePayload = { status };
+
+  if (status === 'ACTIVE') {
+    if (!confirmedSeverity || !confirmedAccidentType || !enrichmentDetails || typeof enrichmentDetails !== 'object') {
+      res.status(400).json({ error: 'Missing enrichment payload' });
+      return;
+    }
+
+    updatePayload.confirmed_severity = confirmedSeverity;
+    updatePayload.confirmed_accident_type = confirmedAccidentType;
+    updatePayload.enrichment_details = enrichmentDetails;
+  }
+
+  const { data, error } = await supabase
+    .from(reportsTable)
+    .update(updatePayload)
+    .eq('id', id)
+    .select('id, name, phone_number, location, accident_point, accident_type, confirmed_severity, confirmed_accident_type, enrichment_details, description, image_data_url, created_at, status, lat, lng')
+    .single();
+
+  if (error) {
+    res.status(500).json({ error: 'Failed to update report status' });
+    return;
+  }
+
+  if (!data) {
+    res.status(404).json({ error: 'Report not found' });
+    return;
+  }
+
+  res.status(200).json(mapRowToReport(data));
 });
 
 app.delete('/api/reports/:id', async (req, res) => {

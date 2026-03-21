@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Topbar from '../components/Topbar';
 import ReportsSidebar from '../components/ReportsSidebar';
 import MapPanel from '../components/MapPanel';
@@ -28,23 +28,31 @@ export default function RegionalOfficerDashboard() {
   const selectedReportIncident = selectedReport ? reports.find((item) => item.id === selectedReport.id) : null;
   const enrichmentFormId = enrichmentTargetId ? `verification-enrichment-form-${enrichmentTargetId}` : 'verification-enrichment-form';
 
-  useEffect(() => {
-    const loadReports = async () => {
-      try {
-        const storedReports = await getUserReports();
-        setUserReports(storedReports);
-        const incidentReports = storedReports.map(toIncidentFromUserReport);
-        setReports(incidentReports);
-        if (incidentReports.length > 0) {
-          setSelectedId(incidentReports[0].id);
-        }
-      } catch {
-        setReportsError('Unable to load reports from backend. Please make sure API server is running.');
-      }
-    };
-
-    loadReports();
+  const refreshReports = useCallback(async () => {
+    try {
+      const storedReports = await getUserReports();
+      setUserReports(storedReports);
+      const incidentReports = storedReports.map(toIncidentFromUserReport);
+      const visibleReports = incidentReports.filter((incident) => incident.status === 'ACTIVE' || incident.status === 'REPORTED');
+      setReports(incidentReports);
+      setReportsError('');
+      setSelectedId((prev) => {
+        if (visibleReports.length === 0) return '';
+        if (prev && visibleReports.some((item) => item.id === prev)) return prev;
+        return visibleReports[0].id;
+      });
+    } catch {
+      setReportsError('Unable to load reports from backend. Please make sure API server is running.');
+    }
   }, []);
+
+  useEffect(() => {
+    void refreshReports();
+    const timer = window.setInterval(() => {
+      void refreshReports();
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [refreshReports]);
 
   useEffect(() => {
     const syncVerifiedIds = () => {
@@ -127,6 +135,7 @@ export default function RegionalOfficerDashboard() {
 
   const handleEnrichmentSubmitted = (incidentId: string) => {
     setVerifiedReportIds(prev => (prev.includes(incidentId) ? prev : [...prev, incidentId]));
+    void refreshReports();
   };
 
   return (

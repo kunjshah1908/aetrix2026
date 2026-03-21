@@ -4,8 +4,8 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
-import { type EnrichmentDetails, type Incident, type Severity } from '../data/staticData';
-import { upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
+import { type EnrichmentDetails, type Incident } from '../data/staticData';
+import { submitReportEnrichment } from '../lib/reportDatabase';
 
 interface Props {
   selectedId: string;
@@ -67,7 +67,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedIncident) {
@@ -75,14 +75,11 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
       return;
     }
 
-    const severityMap: Record<string, Severity> = {
-      Minor: 'MINOR',
-      Moderate: 'MODERATE',
-      Major: 'MAJOR',
-      Critical: 'CRITICAL',
-    };
+    if (!formData.confirmedSeverity || formData.accidentType.length === 0 || !formData.vehiclesInvolved || !formData.casualties || !formData.trafficFlow || !formData.laneBlockage || !formData.roadType) {
+      alert('Please fill all required enrichment fields before verification.');
+      return;
+    }
 
-    const mappedSeverity = severityMap[formData.confirmedSeverity] || selectedIncident.severity;
     const enrichedType = formData.accidentType[0] || selectedIncident.type;
     const enrichmentDetails: EnrichmentDetails = {
       confirmedSeverity: formData.confirmedSeverity,
@@ -99,22 +96,17 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
       officerNotes: formData.officerNotes,
     };
 
-    upsertCommandCenterIncident({
-      id: selectedIncident.id,
-      location: selectedIncident.location,
-      severity: mappedSeverity,
-      elapsed: '00:00:00',
-      status: 'ACTIVE',
-      lat: selectedIncident.lat,
-      lng: selectedIncident.lng,
-      type: enrichedType,
-      reporterName: selectedIncident.reporterName,
-      reporterPhone: selectedIncident.reporterPhone,
-      description: formData.officerNotes || selectedIncident.description,
-      reporterDescription: selectedIncident.reporterDescription || selectedIncident.description,
-      imageDataUrl: selectedIncident.imageDataUrl,
-      enrichmentDetails,
-    });
+    try {
+      await submitReportEnrichment({
+        reportId: selectedIncident.id,
+        confirmedSeverity: formData.confirmedSeverity as 'Mild' | 'Moderate' | 'Extreme',
+        confirmedAccidentType: enrichedType,
+        enrichmentDetails,
+      });
+    } catch {
+      alert('Unable to store enrichment details in backend. Please try again.');
+      return;
+    }
 
     onSubmitted?.(selectedIncident.id);
 
@@ -140,15 +132,14 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="confirmedSeverity">Confirmed Severity *</Label>
-          <Select onValueChange={value => handleSelectChange('confirmedSeverity', value)}>
+          <Select value={formData.confirmedSeverity} onValueChange={value => handleSelectChange('confirmedSeverity', value)}>
             <SelectTrigger id="confirmedSeverity">
               <SelectValue placeholder="Select severity" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Minor">Minor</SelectItem>
+              <SelectItem value="Mild">Mild</SelectItem>
               <SelectItem value="Moderate">Moderate</SelectItem>
-              <SelectItem value="Major">Major</SelectItem>
-              <SelectItem value="Critical">Critical</SelectItem>
+              <SelectItem value="Extreme">Extreme</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -187,7 +178,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
 
           <div className="space-y-2">
             <Label htmlFor="casualties">Casualties Observed *</Label>
-            <Select onValueChange={value => handleSelectChange('casualties', value)}>
+            <Select value={formData.casualties} onValueChange={value => handleSelectChange('casualties', value)}>
               <SelectTrigger id="casualties">
                 <SelectValue placeholder="Select casualties" />
               </SelectTrigger>
@@ -203,7 +194,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="ambulanceRequired">Ambulance Required</Label>
-            <Select onValueChange={value => handleSelectChange('ambulanceRequired', value)}>
+            <Select value={formData.ambulanceRequired} onValueChange={value => handleSelectChange('ambulanceRequired', value)}>
               <SelectTrigger id="ambulanceRequired">
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
@@ -217,7 +208,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
 
           <div className="space-y-2">
             <Label htmlFor="trafficFlow">Current Traffic Flow *</Label>
-            <Select onValueChange={value => handleSelectChange('trafficFlow', value)}>
+            <Select value={formData.trafficFlow} onValueChange={value => handleSelectChange('trafficFlow', value)}>
               <SelectTrigger id="trafficFlow">
                 <SelectValue placeholder="Select traffic flow" />
               </SelectTrigger>
@@ -234,7 +225,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="laneBlockage">Lane Blockage *</Label>
-            <Select onValueChange={value => handleSelectChange('laneBlockage', value)}>
+            <Select value={formData.laneBlockage} onValueChange={value => handleSelectChange('laneBlockage', value)}>
               <SelectTrigger id="laneBlockage">
                 <SelectValue placeholder="Select lane status" />
               </SelectTrigger>
@@ -249,7 +240,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
 
           <div className="space-y-2">
             <Label htmlFor="roadType">Road Type *</Label>
-            <Select onValueChange={value => handleSelectChange('roadType', value)}>
+            <Select value={formData.roadType} onValueChange={value => handleSelectChange('roadType', value)}>
               <SelectTrigger id="roadType">
                 <SelectValue placeholder="Select road type" />
               </SelectTrigger>
@@ -268,7 +259,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="hazardousMaterial">Hazardous Material Present</Label>
-            <Select onValueChange={value => handleSelectChange('hazardousMaterial', value)}>
+            <Select value={formData.hazardousMaterial} onValueChange={value => handleSelectChange('hazardousMaterial', value)}>
               <SelectTrigger id="hazardousMaterial">
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
@@ -309,7 +300,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
         </div>
 
         {!hideSubmitButton && (
-          <Button type="submit" className="w-full" variant="primary">
+          <Button type="submit" className="w-full" variant="default">
             Submit to Command Center
           </Button>
         )}

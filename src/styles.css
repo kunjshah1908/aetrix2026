@@ -389,6 +389,99 @@ input, select, textarea, button {
 .dot-amber { background: var(--orange); }
 .topbar-clock { color: #f8fcff; font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 600; }
 
+/* MAP MARKERS */
+.map-marker-cross,
+.map-marker-circle {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.map-marker-cross span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72%;
+  height: 4px;
+  border-radius: 999px;
+  background: #dc2626;
+  transform-origin: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+}
+
+.map-marker-cross span:first-child {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.map-marker-cross span:last-child {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.map-marker-circle {
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.26);
+}
+
+.map-marker-circle.map-marker-mild {
+  background: #facc15;
+}
+
+.map-marker-circle.map-marker-moderate {
+  background: #f97316;
+}
+
+.map-marker-circle.map-marker-extreme {
+  background: #dc2626;
+}
+
+.map-marker-circle.selected,
+.map-marker-cross.selected {
+  filter: drop-shadow(0 0 0.45rem rgba(23, 58, 99, 0.55));
+}
+
+.map-marker-blink {
+  animation: mapMarkerBlink 1.15s ease-in-out infinite;
+}
+
+@keyframes mapMarkerBlink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.35;
+    transform: scale(1.14);
+  }
+}
+
+.legend-cross {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+}
+
+.legend-cross::before,
+.legend-cross::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 12px;
+  height: 2px;
+  background: #dc2626;
+}
+
+.legend-cross::before {
+  transform: rotate(45deg);
+}
+
+.legend-cross::after {
+  transform: rotate(-45deg);
+}
+
 /* NEW LAYOUT */
 .dashboard-page {
   height: 100vh;
