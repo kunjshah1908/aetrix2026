@@ -43,7 +43,7 @@ const getReports = async (res) => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from(reportsTable)
-      .select('id, name, phone_number, location, accident_point, accident_type, description, image_data_url, created_at, status, lat, lng')
+      .select('id, name, phone_number, location, accident_point, accident_type, confirmed_severity, confirmed_accident_type, enrichment_details, description, image_data_url, created_at, status, lat, lng')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -76,6 +76,9 @@ const createReport = async (req, res) => {
       location,
       accidentPoint,
       accidentType,
+      confirmedSeverity: null,
+      confirmedAccidentType: null,
+      enrichmentDetails: null,
       description,
       imageDataUrl,
       createdAt,
@@ -92,6 +95,9 @@ const createReport = async (req, res) => {
       location: report.location,
       accident_point: report.accidentPoint,
       accident_type: report.accidentType,
+      confirmed_severity: report.confirmedSeverity,
+      confirmed_accident_type: report.confirmedAccidentType,
+      enrichment_details: report.enrichmentDetails,
       description: report.description,
       image_data_url: report.imageDataUrl,
       created_at: report.createdAt,
