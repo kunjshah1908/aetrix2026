@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap');
 
 :root {
   --bg-page: #f4f5f7;
@@ -9,8 +9,10 @@
   --text-primary: #1a1d24;
   --text-secondary: #3d4555;
   --text-muted: #7a8299;
-  --accent-blue: #1a6fe0;
-  --accent-blue-dim: #c5ddf7;
+  --accent-blue: #122a47;
+  --accent-blue-light: #2e4b74;
+  --accent-blue-dark: #0f1e37;
+  --accent-blue-dim: #9bb4db;
   --green: #16a34a;
   --orange: #d97706;
   --red: #dc2626;
@@ -29,13 +31,15 @@ html, body, #root {
   overflow: hidden;
   background: var(--bg-page);
   color: var(--text-primary);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Merriweather', serif;
   font-size: 13px;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
 input, select, textarea, button {
+  font-family: 'Merriweather', serif;
+
   font-family: 'IBM Plex Mono', monospace;
   outline: none;
 }
@@ -43,22 +47,23 @@ input, select, textarea, button {
 /* TOPBAR */
 .topbar {
   height: var(--topbar-height);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  background: linear-gradient(90deg, var(--accent-blue-light), var(--accent-blue));
+  border-bottom: 1px solid var(--accent-blue-dark);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
+  color: #ffffff;
 }
 .topbar-left { display: flex; align-items: center; gap: 14px; }
-.topbar-logo { color: var(--accent-blue); font-size: 15px; letter-spacing: 3px; font-weight: 600; }
-.topbar-city { color: var(--text-muted); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+.topbar-logo { color: #ffffff; font-size: 15px; letter-spacing: 3px; font-weight: 600; }
+.topbar-city { color: rgba(255,255,255,0.95); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
 .topbar-right { display: flex; align-items: center; gap: 18px; }
-.topbar-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.topbar-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.92); text-transform: uppercase; letter-spacing: 1px; }
 .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .dot-green { background: var(--green); }
 .dot-amber { background: var(--orange); }
-.topbar-clock { color: var(--accent-blue); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.topbar-clock { color: #f8fcff; font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 600; }
 
 /* NEW LAYOUT */
 .dashboard-layout {
@@ -115,13 +120,13 @@ input, select, textarea, button {
 /* SECTION HEADERS */
 .section-header {
   font-size: 11px;
-  color: var(--text-muted);
+  color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 2px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--accent-blue-dark);
   font-weight: 600;
-  background: var(--bg-surface);
+  background: linear-gradient(90deg, var(--accent-blue-light), var(--accent-blue));
 }
 
 /* INCIDENT CARD */
@@ -135,7 +140,7 @@ input, select, textarea, button {
 .incident-card:hover { background: #eef2f7; }
 .incident-card.active {
   background: #e8f0fb;
-  border-left-color: var(--accent-blue);
+  border-left-color: var(--accent-blue-dark);
 }
 .incident-id { color: var(--accent-blue); font-size: 12px; font-weight: 600; }
 .incident-location { color: var(--text-primary); font-size: 12px; margin-top: 3px; }
@@ -233,7 +238,7 @@ input, select, textarea, button {
   transition: opacity 0.15s;
 }
 .tab-btn:hover { color: var(--text-secondary); }
-.tab-btn.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+.tab-btn.active { color: var(--accent-blue-dark); border-bottom-color: var(--accent-blue-dark); }
 
 /* COPILOT TAB */
 .quick-templates { padding: 10px 14px; }
