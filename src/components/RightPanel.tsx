@@ -3,12 +3,19 @@ import CopilotTab from './CopilotTab';
 import DecisionLogTab from './DecisionLogTab';
 import StatsTab from './StatsTab';
 import { initialDecisionLog, type DecisionEntry } from '../data/staticData';
+import { Incident, Officer, type DecisionCardData } from '../data/staticData';
+import { TrafficRow } from '../lib/types';
 
 interface Props {
   selectedId: string;
+  selectedIncident: Incident | null;
+  trafficSnapshot: TrafficRow[];
+  nearestOfficer: { officer: Officer; distanceMetres: number; estimatedMinutes: number } | null;
+  diversionRoadNames: string[];
+  onLiveDecisions: (decisions: DecisionCardData[]) => void;
 }
 
-export default function RightPanel({ selectedId }: Props) {
+export default function RightPanel({ selectedId, selectedIncident, trafficSnapshot, nearestOfficer, diversionRoadNames, onLiveDecisions }: Props) {
   const [activeTab, setActiveTab] = useState<'copilot' | 'declog' | 'stats'>('copilot');
   const [decisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
 
@@ -32,7 +39,16 @@ export default function RightPanel({ selectedId }: Props) {
         ))}
       </div>
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {activeTab === 'copilot' && <CopilotTab selectedId={selectedId} />}
+        {activeTab === 'copilot' && (
+          <CopilotTab 
+            selectedId={selectedId} 
+            selectedIncident={selectedIncident} 
+            trafficSnapshot={trafficSnapshot} 
+            nearestOfficer={nearestOfficer} 
+            diversionRoadNames={diversionRoadNames} 
+            onLiveDecisions={onLiveDecisions}
+          />
+        )}
         {activeTab === 'declog' && <DecisionLogTab entries={decisionLog} />}
         {activeTab === 'stats' && <StatsTab />}
       </div>
