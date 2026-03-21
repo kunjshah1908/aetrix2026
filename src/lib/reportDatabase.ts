@@ -2,6 +2,7 @@ import { type Incident, type Severity } from '../data/staticData';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim();
 const API_ROOT = API_BASE_URL || '';
+const LOCAL_REPORTS_STORAGE_KEY = 'aetrix:userReports';
 
 export type UserAccidentType = 'Minor' | 'Medium' | 'Extreme';
 
@@ -30,6 +31,57 @@ interface NewUserReportInput {
 
 const apiUrl = (path: string) => `${API_ROOT}${path}`;
 
+const isUserReportRecord = (value: unknown): value is UserReportRecord => {
+  if (!value || typeof value !== 'object') return false;
+  const report = value as Partial<UserReportRecord>;
+  return (
+    typeof report.id === 'string' &&
+    typeof report.name === 'string' &&
+    typeof report.phoneNumber === 'string' &&
+    typeof report.location === 'string' &&
+    typeof report.accidentType === 'string' &&
+    typeof report.description === 'string' &&
+    typeof report.imageDataUrl === 'string' &&
+    typeof report.createdAt === 'string' &&
+    typeof report.status === 'string' &&
+    typeof report.lat === 'number' &&
+    typeof report.lng === 'number'
+  );
+};
+
+const sortReportsNewestFirst = (reports: UserReportRecord[]) =>
+  [...reports].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+
+const readLocalReports = (): UserReportRecord[] => {
+  try {
+    const raw = window.localStorage.getItem(LOCAL_REPORTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isUserReportRecord);
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalReports = (reports: UserReportRecord[]) => {
+  window.localStorage.setItem(LOCAL_REPORTS_STORAGE_KEY, JSON.stringify(sortReportsNewestFirst(reports)));
+};
+
+const createFallbackReport = (input: NewUserReportInput): UserReportRecord => ({
+  id: `REP-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+  name: input.name,
+  phoneNumber: input.phoneNumber,
+  location: input.location,
+  accidentType: input.accidentType,
+  description: input.description,
+  imageDataUrl: input.imageDataUrl,
+  createdAt: new Date().toISOString(),
+  status: 'REPORTED',
+  lat: 23.215 + (Math.random() - 0.5) * 0.02,
+  lng: 72.637 + (Math.random() - 0.5) * 0.02,
+});
+
 const toSeverity = (accidentType: UserAccidentType): Severity => {
   if (accidentType === 'Extreme') return 'CRITICAL';
   if (accidentType === 'Medium') return 'MODERATE';
@@ -37,38 +89,57 @@ const toSeverity = (accidentType: UserAccidentType): Severity => {
 };
 
 export const getUserReports = async (): Promise<UserReportRecord[]> => {
-  const response = await fetch(apiUrl('/api/reports'));
-  if (!response.ok) {
-    throw new Error('Unable to load reports from backend');
-  }
+  try {
+    const response = await fetch(apiUrl('/api/reports'));
+    if (!response.ok) {
+      throw new Error('Unable to load reports from backend');
+    }
 
-  const reports = (await response.json()) as UserReportRecord[];
-  return reports.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    const reports = (await response.json()) as UserReportRecord[];
+    return sortReportsNewestFirst(reports);
+  } catch {
+    return sortReportsNewestFirst(readLocalReports());
+  }
 };
 
 export const addUserReport = async (input: NewUserReportInput): Promise<UserReportRecord> => {
-  const response = await fetch(apiUrl('/api/reports'), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  });
+  try {
+    const response = await fetch(apiUrl('/api/reports'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
 
-  if (!response.ok) {
-    throw new Error('Unable to create report in backend');
+    if (!response.ok) {
+      throw new Error('Unable to create report in backend');
+    }
+
+    return (await response.json()) as UserReportRecord;
+  } catch {
+    const fallbackReport = createFallbackReport(input);
+    const existingReports = readLocalReports();
+    writeLocalReports([fallbackReport, ...existingReports]);
+    return fallbackReport;
   }
-
-  return (await response.json()) as UserReportRecord;
 };
 
 export const removeUserReport = async (id: string): Promise<void> => {
-  const response = await fetch(apiUrl(`/api/reports/${encodeURIComponent(id)}`), {
-    method: 'DELETE',
-  });
+  try {
+    const response = await fetch(apiUrl(`/api/reports/${encodeURIComponent(id)}`), {
+      method: 'DELETE',
+    });
 
-  if (!response.ok) {
-    throw new Error('Unable to delete report from backend');
+    if (!response.ok) {
+      throw new Error('Unable to delete report from backend');
+    }
+
+    return;
+  } catch {
+    const existingReports = readLocalReports();
+    const nextReports = existingReports.filter((report) => report.id !== id);
+    writeLocalReports(nextReports);
   }
 };
 
