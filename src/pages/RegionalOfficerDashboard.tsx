@@ -110,7 +110,7 @@ export default function RegionalOfficerDashboard() {
 
   const handleVerify = (id: string) => {
     setSelectedId(id);
-    setVerifyMessage('Verified Accident, Please fill the Enrichment Form');
+    setVerifyMessage('Accident Verified and Sent to Command Center!');
     window.setTimeout(() => {
       setVerifyMessage('');
     }, 2500);

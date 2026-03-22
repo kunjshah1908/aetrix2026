@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { type Incident, diversionRoute } from '../data/staticData';
@@ -17,7 +17,6 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
   const markersRef = useRef<L.Layer[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
   const lastCenteredIncidentIdRef = useRef<string>('');
-  const [layers, setLayers] = useState<string[]>(['SENSORS']);
 
   const recenterToSelectedIncident = (animate = true) => {
     const map = mapRef.current;
@@ -118,10 +117,6 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
     }
   }, [showDiversion]);
 
-  const toggleLayer = (name: string) => {
-    setLayers(prev => prev.includes(name) ? prev.filter(l => l !== name) : [...prev, name]);
-  };
-
   return (
     <div className="map-panel">
       <div className="map-container">
@@ -151,18 +146,6 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
           <span style={{ width: 18, height: 2, background: '#1a6fe0', display: 'inline-block' }} />
           <span>DIVERSION</span>
         </div>
-      </div>
-
-      <div className="map-controls">
-        {['SENSORS', 'SIGNALS', 'HEATMAP', 'OFFICERS'].map(name => (
-          <button
-            key={name}
-            className={`map-control-btn${layers.includes(name) ? ' active' : ''}`}
-            onClick={() => toggleLayer(name)}
-          >
-            {name}
-          </button>
-        ))}
       </div>
 
       <div className="map-recenter-control">

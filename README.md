@@ -1,123 +1,129 @@
 # Aetrix 2026
 
-This project uses a real backend API with Supabase PostgreSQL for user-submitted accident reports.
+AI-powered traffic incident command platform built for hackathon speed.
 
-## Run Frontend
+## What It Is
 
-1. Install dependencies:
+Aetrix helps city traffic teams coordinate incidents in real time:
+
+- Citizens submit incident reports with location + photo
+- Regional officers verify and enrich reports from the field
+- Command Center reviews AI suggestions and applies actions
+- Orders sync to regional dashboard through real Supabase-backed APIs
+
+This project is optimized for demo impact: fast workflows, clear operational panels, live map context, and role-based dashboards.
+
+## Demo Value (Hackathon Pitch)
+
+- Real workflow: citizen -> regional -> command center -> orders -> closure
+- Real backend: Vercel Functions + Supabase PostgreSQL
+- Role-based auth flows for regional and command center users
+- Actionable AI interface with decisions and dispatch flow
+
+## Tech Stack
+
+- Frontend: React + TypeScript + Vite
+- UI: Tailwind + custom components
+- Map: Leaflet
+- Backend: Vercel Serverless Functions in [api](api)
+- Database/Auth: Supabase
+- Testing: Vitest + Playwright setup
+
+## Project Structure
+
+- App source: [src](src)
+- Serverless APIs: [api](api)
+- SQL schema: [server/supabase-schema.sql](server/supabase-schema.sql)
+- Vercel config: [vercel.json](vercel.json)
+
+## Quick Start (Local)
+
+1. Install dependencies
 
 ```bash
 npm install --legacy-peer-deps
 ```
 
-2. Start Vite frontend:
+2. Configure env
+
+Create `.env` using your Supabase values:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+VITE_API_BASE_URL=
+```
+
+3. Run database schema
+
+Open Supabase SQL Editor and execute [server/supabase-schema.sql](server/supabase-schema.sql).
+
+4. Start app
 
 ```bash
 npm run dev
 ```
 
-Frontend runs on http://localhost:8080.
+5. Open app
 
-## Run Backend API
+`http://localhost:8080`
 
-1. Create a Supabase project.
-2. Open SQL Editor and run [server/supabase-schema.sql](server/supabase-schema.sql).
-	- This file now includes a safe migration for the `accident_point` column used by new reports.
-3. Copy [.env.example](.env.example) to .env and fill:
-	- VITE_SUPABASE_URL
-	- VITE_SUPABASE_ANON_KEY
-	- SUPABASE_URL
-	- SUPABASE_SERVICE_ROLE_KEY
-4. In another terminal run:
+## Production (Vercel)
 
-```bash
-npm run dev:api
-```
+1. Deploy this repository to one Vercel project.
+2. Add environment variables in Vercel (Production + Preview):
 
-Backend runs on http://localhost:4000.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_API_BASE_URL`
 
-## Database
+3. Set `VITE_API_BASE_URL`:
 
-- Database: Supabase PostgreSQL
-- Reports table: public.user_reports
+- Same domain API + frontend: leave it empty
+- Separate API domain: set full API origin
 
-## API Endpoints
+4. Redeploy and verify:
 
-- GET /api/health
-- GET /api/reports
-- POST /api/reports
-- DELETE /api/reports/:id
-- GET /api/orders
-- POST /api/orders
-- PATCH /api/orders/:id
+- `https://<your-vercel-domain>/api/health` should return `configured: true`
 
-## Regional Officer Authentication
+## Core API Routes
 
-- Route: `/regional` (login/signup)
-- Protected route: `/regional/dashboard`
-- Auth provider: Supabase email/password auth
+- `GET /api/health`
+- `GET /api/reports`
+- `POST /api/reports`
+- `PATCH /api/reports/:id`
+- `DELETE /api/reports/:id`
+- `GET /api/orders`
+- `POST /api/orders`
+- `PATCH /api/orders/:id`
 
-### Supabase Setup Steps
+## Demo Flow (2 Minutes)
 
-1. In Supabase Dashboard, open Authentication -> Providers -> Email and enable Email provider.
-2. In Authentication -> URL Configuration, add your site URLs:
-	- Local: `http://localhost:8080`
-	- Production: `https://<your-vercel-domain>`
-3. In SQL Editor, run [server/supabase-schema.sql](server/supabase-schema.sql) to create/update:
-	- `public.user_reports`
-	- `public.command_orders`
-	- `public.regional_officer_profiles` with RLS policies
-4. In Supabase Project Settings -> API, copy:
-	- Project URL -> set as `VITE_SUPABASE_URL`
-	- anon public key -> set as `VITE_SUPABASE_ANON_KEY`
-5. Keep backend keys private:
-	- `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed in frontend code.
+1. Submit a new incident from public/report flow.
+2. Login as Regional Officer and verify + enrich incident.
+3. Login as Command Center and apply decision.
+4. Show order reflected in Regional "Command Center Orders".
+5. Acknowledge/cancel order and show status update.
 
-### Create First Regional Officer Account
+## Troubleshooting
 
-1. Start app and open `/regional`.
-2. Click `Create New Account`.
-3. Enter login ID (email) and password.
-4. If email confirmation is enabled, verify from inbox and then login.
+- Orders not syncing on Vercel:
+Run latest schema from [server/supabase-schema.sql](server/supabase-schema.sql), verify `/api/orders` returns JSON, and confirm `VITE_API_BASE_URL` is correct.
 
-## Command Center Authentication
+- Reports failing to load/create:
+Check `/api/health`, then verify `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel.
 
-- Route: `/dashboard` (login/signup)
-- Protected route: `/dashboard/home`
-- Auth provider: Supabase email/password auth
+- Works locally but not across devices:
+Use deployed Vercel URL for all roles; localStorage does not share state between devices.
 
-### Supabase Setup For Command Center
+## Security Note
 
-1. In SQL Editor, run [server/supabase-schema.sql](server/supabase-schema.sql).
-2. Confirm table exists:
-	- `public.command_center_profiles`
-3. Ensure env values are set (local `.env` and Vercel):
-	- `VITE_SUPABASE_URL`
-	- `VITE_SUPABASE_ANON_KEY`
-	- `SUPABASE_URL`
-	- `SUPABASE_SERVICE_ROLE_KEY`
-4. Open `/dashboard` and use:
-	- Login ID (email)
-	- Password
-	- Create New Account for first-time users
+Never expose `SUPABASE_SERVICE_ROLE_KEY` in client code. If compromised, rotate it immediately in Supabase and update Vercel.
 
-## Deploy on Vercel
+---
 
-The repo now includes Vercel Functions under `api/` for production API routes.
-
-1. In Vercel project settings, add environment variables:
-	- `SUPABASE_URL`
-	- `SUPABASE_SERVICE_ROLE_KEY`
-2. Redeploy the project.
-3. Verify health check:
-
-```bash
-https://<your-vercel-domain>/api/health
-```
-
-You should receive JSON with `"configured": true`.
-
-### Important
-
-- Keep `VITE_API_BASE_URL` empty when API and frontend are served by the same Vercel domain.
-- If you previously committed a real Supabase service role key in any file, rotate it immediately in Supabase and update Vercel with the new key.
+Built for rapid-response traffic intelligence at hackathon speed.
