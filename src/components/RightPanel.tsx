@@ -9,20 +9,21 @@ import { TrafficRow } from '../lib/types';
 interface Props {
   selectedId: string;
   selectedIncident: Incident | null;
+  incidents: Incident[];
   trafficSnapshot: TrafficRow[];
   nearestOfficer: { officer: Officer; distanceMetres: number; estimatedMinutes: number } | null;
   diversionRoadNames: string[];
+  decisionLog: DecisionEntry[];
   onLiveDecisions: (decisions: DecisionCardData[]) => void;
 }
 
-export default function RightPanel({ selectedId, selectedIncident, trafficSnapshot, nearestOfficer, diversionRoadNames, onLiveDecisions }: Props) {
+export default function RightPanel({ selectedId, selectedIncident, incidents, trafficSnapshot, nearestOfficer, diversionRoadNames, decisionLog, onLiveDecisions }: Props) {
   const [activeTab, setActiveTab] = useState<'copilot' | 'declog' | 'stats'>('copilot');
-  const [decisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
 
   const tabs = [
     { key: 'copilot' as const, label: 'COPILOT' },
-    { key: 'decision-log' as const, label: 'Decision Logs' },
-    { key: 'statistics' as const, label: 'Statistics' },
+    { key: 'declog' as const, label: 'Decision Logs' },
+    { key: 'stats' as const, label: 'Statistics' },
   ];
 
   return (
@@ -50,7 +51,7 @@ export default function RightPanel({ selectedId, selectedIncident, trafficSnapsh
           />
         )}
         {activeTab === 'declog' && <DecisionLogTab entries={decisionLog} />}
-        {activeTab === 'stats' && <StatsTab />}
+        {activeTab === 'stats' && <StatsTab incidents={incidents} decisionLog={decisionLog} />}
       </div>
     </div>
   );
