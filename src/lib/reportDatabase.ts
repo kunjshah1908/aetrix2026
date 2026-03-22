@@ -46,6 +46,25 @@ interface SubmitEnrichmentInput {
 
 const apiUrl = (path: string) => `${API_ROOT}${path}`;
 
+const readApiErrorMessage = async (response: Response, fallback: string): Promise<string> => {
+  try {
+    const text = (await response.text()).trim();
+    if (!text) return fallback;
+
+    try {
+      const parsed = JSON.parse(text) as { error?: unknown; message?: unknown };
+      if (typeof parsed.error === 'string' && parsed.error.trim()) return parsed.error;
+      if (typeof parsed.message === 'string' && parsed.message.trim()) return parsed.message;
+    } catch {
+      // Response body was plain text; fall through.
+    }
+
+    return text;
+  } catch {
+    return fallback;
+  }
+};
+
 const parseAccidentPointCoords = (accidentPoint: string): { lat: number; lng: number } | null => {
   const match = accidentPoint.match(/Lat\s*(-?\d+(?:\.\d+)?),\s*Lng\s*(-?\d+(?:\.\d+)?)/i);
   if (!match) return null;
@@ -157,13 +176,17 @@ export const getUserReports = async (): Promise<UserReportRecord[]> => {
   try {
     const response = await fetch(apiUrl('/api/reports'));
     if (!response.ok) {
-      throw new Error(`Unable to load reports from backend (HTTP ${response.status})`);
+      const details = await readApiErrorMessage(response, `Unable to load reports from backend (HTTP ${response.status})`);
+      throw new Error(details);
     }
 
     const reports = ((await response.json()) as UserReportRecord[]).map(withAccidentPointCoords);
     return sortReportsNewestFirst(reports);
-  } catch {
+  } catch (error) {
     if (!canUseLocalFallback()) {
+      if (error instanceof Error && error.message.trim()) {
+        throw error;
+      }
       throw new Error('Unable to load reports from backend. Please check server deployment and environment variables.');
     }
     return sortReportsNewestFirst(readLocalReports());

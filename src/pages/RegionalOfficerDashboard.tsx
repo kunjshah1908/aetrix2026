@@ -55,8 +55,13 @@ export default function RegionalOfficerDashboard() {
         if (prev && visibleReports.some((item) => item.id === prev)) return prev;
         return visibleReports[0].id;
       });
-    } catch {
-      setReportsError('Unable to load reports from backend. Please make sure API server is running.');
+    } catch (error) {
+      const fallbackMessage = 'Unable to load reports from backend. Check Vercel API deployment and Supabase environment variables.';
+      if (error instanceof Error && error.message.trim()) {
+        setReportsError(error.message);
+        return;
+      }
+      setReportsError(fallbackMessage);
     }
   }, []);
 
