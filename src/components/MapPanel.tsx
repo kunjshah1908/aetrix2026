@@ -16,7 +16,16 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Layer[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
+  const lastCenteredIncidentIdRef = useRef<string>('');
   const [layers, setLayers] = useState<string[]>(['SENSORS']);
+
+  const recenterToSelectedIncident = (animate = true) => {
+    const map = mapRef.current;
+    if (!map || !selectedId) return;
+    const incident = incidents.find((item) => item.id === selectedId);
+    if (!incident) return;
+    map.setView([incident.lat, incident.lng], map.getZoom(), { animate });
+  };
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -92,10 +101,10 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
   }, [incidents, selectedId, onSelect, showReportedMarkers]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const inc = incidents.find(i => i.id === selectedId);
-    if (inc) map.setView([inc.lat, inc.lng], map.getZoom(), { animate: true });
+    // Recenter only when user changes selected incident, not on every incident refresh.
+    if (!selectedId || lastCenteredIncidentIdRef.current === selectedId) return;
+    recenterToSelectedIncident(true);
+    lastCenteredIncidentIdRef.current = selectedId;
   }, [selectedId, incidents]);
 
   useEffect(() => {
@@ -154,6 +163,16 @@ export default function MapPanel({ incidents, selectedId, onSelect, showDiversio
             {name}
           </button>
         ))}
+      </div>
+
+      <div className="map-recenter-control">
+        <button
+          className="map-control-btn"
+          onClick={() => recenterToSelectedIncident(true)}
+          title="Recenter map to selected incident"
+        >
+          RECENTER
+        </button>
       </div>
     </div>
   );
