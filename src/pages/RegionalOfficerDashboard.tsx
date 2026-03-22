@@ -4,10 +4,12 @@ import ReportsSidebar from '../components/ReportsSidebar';
 import MapPanel from '../components/MapPanel';
 import IncidentEnrichmentForm from '../components/IncidentEnrichmentForm';
 import DecisionsPanel from '../components/DecisionsPanel';
+import OrdersPanel from '../components/OrdersPanel';
 import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
 import { getUserReports, removeUserReport, toIncidentFromUserReport, type UserReportRecord } from '../lib/reportDatabase';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated } from '../lib/commandCenterIncidentStore';
+import { getPendingOrders, onCommandOrdersUpdated, type CommandOrder } from '../lib/ordersStore';
 
 export default function RegionalOfficerDashboard() {
   const [selectedId, setSelectedId] = useState('');
@@ -29,6 +31,9 @@ export default function RegionalOfficerDashboard() {
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
+  const [pendingOrders, setPendingOrders] = useState<CommandOrder[]>([]);
+  const [officerBadge] = useState('OFC-03');
+  
   const selectedIncident = reports.find((item) => item.id === selectedId);
   const enrichmentIncident = reports.find((item) => item.id === enrichmentTargetId);
   const selectedReportIncident = selectedReport ? reports.find((item) => item.id === selectedReport.id) : null;
@@ -72,6 +77,17 @@ export default function RegionalOfficerDashboard() {
 
     syncVerifiedIds();
     const unsubscribe = onCommandCenterIncidentsUpdated(syncVerifiedIds);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const syncPendingOrders = () => {
+      const orders = getPendingOrders();
+      setPendingOrders(orders);
+    };
+
+    syncPendingOrders();
+    const unsubscribe = onCommandOrdersUpdated(syncPendingOrders);
     return unsubscribe;
   }, []);
 
@@ -195,11 +211,7 @@ export default function RegionalOfficerDashboard() {
         </div>
         <div style={{ width: '40%', minWidth: 0, padding: '12px', background: 'var(--bg-page)' }}>
           <div className="bottom-panel" style={{ height: '100%' }}>
-            <DecisionsPanel
-              selectedId={selectedId}
-              onDecisionApply={handleDecisionApply}
-              onDiversionApply={() => setShowDiversion(true)}
-            />
+            <OrdersPanel officerBadge={officerBadge} />
           </div>
         </div>
       </div>

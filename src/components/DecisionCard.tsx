@@ -23,15 +23,34 @@ export default function DecisionCard({ card, applied, appliedTime, onApply }: Pr
         </div>
       ) : (
         <div className="decision-footer">
-          {card.actions.map(action => (
-            <button
-              key={action}
-              className={`decision-btn ${action === 'SKIP' ? 'skip' : 'apply'}`}
-              onClick={() => onApply(action)}
-            >
-              {action}
-            </button>
-          ))}
+          {card.actions.filter(action => action !== 'SEND SMS').map(action => {
+            if (action === 'POST TWITTER') {
+              return (
+                <button
+                  key={action}
+                  className="decision-btn apply"
+                  onClick={() => {
+                    const tweetText = card.body.replace(/^(Twitter:\s*)?/i, '').trim();
+                    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+                    window.open(url, '_blank');
+                    onApply(action);
+                  }}
+                >
+                  Tweet
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={action}
+                className={`decision-btn ${action === 'SKIP' ? 'skip' : 'apply'}`}
+                onClick={() => onApply(action)}
+              >
+                {action}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

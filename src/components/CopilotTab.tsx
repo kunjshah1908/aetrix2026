@@ -80,8 +80,8 @@ export default function CopilotTab({ selectedId, selectedIncident, trafficSnapsh
           id: `live-alert-${Date.now()}`,
           type: 'PUBLIC ALERT',
           confidence: result.public_alert.confidence === 'HIGH' ? 'HIGH' : 'REVIEW',
-          body: `Twitter: ${result.public_alert.twitter} | SMS: ${result.public_alert.sms}`,
-          actions: ['POST TWITTER', 'SEND SMS', 'SKIP'],
+          body: `Twitter: ${result.public_alert.twitter}`,
+          actions: ['POST TWITTER', 'SKIP'],
         });
       }
       onLiveDecisions(cards);
