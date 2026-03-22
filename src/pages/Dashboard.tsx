@@ -9,6 +9,7 @@ import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry, officers, type DecisionCardData } from '../data/staticData';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
 import { getDecisionLog, addDecisionEntry, onDecisionLogUpdated } from '../lib/decisionLogStore';
+import { addCommandOrder } from '../lib/ordersStore';
 import { getUserReports, markReportSolved, toIncidentFromUserReport } from '../lib/reportDatabase';
 import { getSupabaseAuthClient } from '../lib/supabaseClient';
 import { loadSimulationData, getCurrentSnapshot, advanceStep } from '../lib/simulation';
@@ -147,6 +148,17 @@ export default function Dashboard() {
   const handleDecisionApply = (entry: DecisionEntry) => {
     const updated = addDecisionEntry(entry);
     setDecisionLog(updated);
+
+    // Also create a command order for regional officers
+    addCommandOrder({
+      id: entry.id,
+      timestamp: entry.timestamp,
+      decisionType: entry.type,
+      incidentId: entry.incidentId,
+      summary: entry.summary,
+      operator: entry.operator,
+      status: 'PENDING',
+    });
   };
 
   const handleNewReport = (data: { location: string; severity: string; type: string; officer: string; notes: string }) => {
