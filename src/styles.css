@@ -690,6 +690,58 @@ input, select, textarea, button {
   background: #f8fafc;
 }
 
+.section-header-with-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.section-header-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.18);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.section-header-btn:hover {
+  background: rgba(255,255,255,0.32);
+  transform: translateY(-1px);
+}
+
+.section-header-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.14);
+  transform: none;
+}
+
+.section-header-btn-primary {
+  background: rgba(255,255,255,0.18);
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.7);
+}
+
+.section-header-btn-primary:hover {
+  background: rgba(255,255,255,0.32);
+}
+
 .sidebar-panel,
 .decisions-panel {
   display: flex;
@@ -1165,38 +1217,39 @@ input, select, textarea, button {
   display: flex;
   gap: var(--dashboard-space);
   padding: var(--dashboard-space);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg-surface) 100%);
+  border-bottom: 1px solid #dbeafe;
 }
 .tab-btn {
   flex: 1;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--text-muted);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
+  letter-spacing: 1px;
+  color: var(--accent-blue);
+  background: var(--brand-soft, #e8eef7);
+  border: 1px solid var(--accent-blue-dim);
+  border-radius: 14px;
   padding: 10px 16px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(46, 75, 116, 0.12);
   position: relative;
+  font-weight: 700;
 }
 .tab-btn:hover {
-  color: var(--text-primary);
-  background: #f8fafc;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-  border-color: var(--border-default);
+  color: var(--accent-blue-dark);
+  background: var(--brand-soft-hover, #dbe8f8);
+  box-shadow: 0 6px 14px rgba(46, 75, 116, 0.2);
+  transform: translateY(-1px);
+  border-color: #93c5fd;
 }
 .tab-btn.active {
   color: #ffffff;
-  background: linear-gradient(135deg, var(--accent-blue-light), var(--accent-blue));
+  background: var(--accent-blue);
   border-color: var(--accent-blue-dark);
-  box-shadow: 0 8px 20px rgba(46, 75, 116, 0.3);
-  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(30, 64, 175, 0.3);
+  transform: translateY(-1px);
 }
 
 /* COPILOT TAB */
@@ -1420,7 +1473,7 @@ input, select, textarea, button {
   padding: 10px;
   cursor: pointer;
   border-radius: 20px;
-  margin-bottom: var(--dashboard-space);
+  margin-bottom: 0;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(46, 75, 116, 0.14);
 }

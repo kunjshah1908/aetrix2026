@@ -46,7 +46,16 @@ export default function DecisionsPanel({ selectedId, decisions = [], onDecisionA
 
   return (
     <div className="decisions-panel">
-      <div className="section-header">ACTIONS & DECISIONS</div>
+      <div className="section-header section-header-with-actions">
+        <span>ACTIONS & DECISIONS</span>
+        <button
+          className="section-header-btn"
+          onClick={handleApplyAll}
+          disabled={decisions.length === 0}
+        >
+          APPLY ALL
+        </button>
+      </div>
       <div className="decisions-list">
         {decisions.length === 0 ? (
           <div className="decisions-empty">
@@ -64,7 +73,6 @@ export default function DecisionsPanel({ selectedId, decisions = [], onDecisionA
                 onApply={(action) => handleApplyDecision(card.id, action)}
               />
             ))}
-            <button className="apply-all-btn" onClick={handleApplyAll}>APPLY ALL</button>
           </>
         )}
       </div>
