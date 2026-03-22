@@ -9,6 +9,8 @@ import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry, officers, decisionsForIncident, type DecisionCardData } from '../data/staticData';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
 import { getUserReports, markReportSolved, toIncidentFromUserReport } from '../lib/reportDatabase';
+import { addDecisionEntry } from '../lib/decisionLogStore';
+import { addCommandOrder } from '../lib/ordersStore';
 import { getSupabaseAuthClient } from '../lib/supabaseClient';
 import { loadSimulationData, getCurrentSnapshot, advanceStep } from '../lib/simulation';
 import { findNearestAvailableOfficer, computeDiversionRoute } from '../lib/algorithms';

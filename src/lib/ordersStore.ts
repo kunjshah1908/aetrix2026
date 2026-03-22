@@ -86,7 +86,19 @@ export const cancelOrder = (
 
 export const onCommandOrdersUpdated = (handler: () => void): (() => void) => {
   if (typeof window === 'undefined') return () => undefined;
-  const listener = () => handler();
-  window.addEventListener(EVENT_NAME, listener);
-  return () => window.removeEventListener(EVENT_NAME, listener);
+
+  const customEventListener = () => handler();
+  const storageListener = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY) {
+      handler();
+    }
+  };
+
+  window.addEventListener(EVENT_NAME, customEventListener);
+  window.addEventListener('storage', storageListener);
+
+  return () => {
+    window.removeEventListener(EVENT_NAME, customEventListener);
+    window.removeEventListener('storage', storageListener);
+  };
 };

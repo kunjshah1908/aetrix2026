@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPendingOrders, acknowledgeOrder, cancelOrder, type CommandOrder } from '../lib/ordersStore';
+import { getPendingOrders, acknowledgeOrder, cancelOrder, onCommandOrdersUpdated, type CommandOrder } from '../lib/ordersStore';
 
 interface Props {
   officerBadge: string;
@@ -11,7 +11,14 @@ export default function OrdersPanel({ officerBadge }: Props) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
-    setOrders(getPendingOrders());
+    const syncOrders = () => {
+      setOrders(getPendingOrders());
+    };
+
+    syncOrders();
+    const unsubscribe = onCommandOrdersUpdated(syncOrders);
+
+    return unsubscribe;
   }, []);
 
   const handleAcknowledge = (orderId: string) => {
