@@ -32,7 +32,7 @@ export default function ReportsSidebar({ selectedId, onSelect, onOpenReport, onV
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="section-header">ACTIVE REPORTINGS</div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
-        {reports.filter(r => r.status === 'REPORTED').map(rep => (
+        {reports.filter(r => r.status === 'REPORTED' || r.status === 'ACTIVE').map(rep => (
           (() => {
             const isVerified = verifiedReportIds.includes(rep.id);
             const userSeverity = getUserSeverity(rep.type);
@@ -65,7 +65,6 @@ export default function ReportsSidebar({ selectedId, onSelect, onOpenReport, onV
                 <span className="incident-elapsed">{rep.elapsed}</span>
                 {isVerified ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
-                    <button onClick={(e) => { e.stopPropagation(); onVerification(rep.id); }} style={{ padding: '5px 10px', background: 'var(--brand-soft, #e8eef7)', color: 'var(--accent-blue)', border: '1px solid var(--accent-blue-dim)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>View Details</button>
                     <span style={{ display: 'inline-block', padding: '5px 10px', background: '#16a34a', color: 'white', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>
                       Verified and Sent
                     </span>

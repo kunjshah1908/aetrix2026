@@ -97,7 +97,7 @@ export default function CopilotTab({ selectedId, selectedIncident, trafficSnapsh
     if (fn) setInput(fn(selectedId));
   };
 
-  const templates = ['ASSESS + RECOMMEND', 'SIGNAL RE-TIMING', 'DRAFT PUBLIC ALERT', 'AMBULANCE ROUTE', 'OFFICER REDEPLOY', 'SHIFT BRIEFING'];
+  const templates = ['ASSESS + RECOMMEND', 'SIGNAL RE-TIMING', 'AMBULANCE ROUTE'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

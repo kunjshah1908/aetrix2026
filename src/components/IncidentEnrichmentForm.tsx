@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -10,7 +10,14 @@ import { submitReportEnrichment } from '../lib/reportDatabase';
 interface Props {
   selectedId: string;
   selectedIncident?: Incident;
-  onSubmitted?: (incidentId: string) => void;
+  onSubmitted?: (
+    incidentId: string,
+    submittedData?: {
+      confirmedSeverity: 'Mild' | 'Moderate' | 'Extreme';
+      confirmedAccidentType: string;
+      enrichmentDetails: EnrichmentDetails;
+    }
+  ) => void;
   formId?: string;
   hideSubmitButton?: boolean;
 }
@@ -27,21 +34,36 @@ const accidentTypes = [
   'Multi-vehicle pile-up',
 ];
 
-export default function IncidentEnrichmentForm({ selectedId, selectedIncident, onSubmitted, formId, hideSubmitButton = false }: Props) {
-  const [formData, setFormData] = useState({
-    confirmedSeverity: '',
-    accidentType: [] as string[],
+const mapSeverityToConfirmed = (severity?: Incident['severity']) => {
+  if (severity === 'MINOR') return 'Mild';
+  if (severity === 'MODERATE' || severity === 'MAJOR') return 'Moderate';
+  if (severity === 'CRITICAL') return 'Extreme';
+  return '';
+};
+
+const createInitialFormData = (selectedIncident?: Incident) => {
+  return {
+    confirmedSeverity: mapSeverityToConfirmed(selectedIncident?.severity),
+    accidentType: [],
     vehiclesInvolved: '',
-    casualties: '',
-    ambulanceRequired: '',
-    trafficFlow: '',
-    laneBlockage: '',
-    roadType: '',
-    hazardousMaterial: '',
-    gpsCoordinates: '',
+    casualties: 'None',
+    ambulanceRequired: 'No',
+    trafficFlow: 'Slow',
+    laneBlockage: 'No lanes blocked',
+    roadType: 'Arterial',
+    hazardousMaterial: 'No',
+    gpsCoordinates: selectedIncident ? `${selectedIncident.lat.toFixed(6)}, ${selectedIncident.lng.toFixed(6)}` : '',
     photos: [] as File[],
     officerNotes: '',
-  });
+  };
+};
+
+export default function IncidentEnrichmentForm({ selectedId, selectedIncident, onSubmitted, formId, hideSubmitButton = false }: Props) {
+  const [formData, setFormData] = useState(() => createInitialFormData(selectedIncident));
+
+  useEffect(() => {
+    setFormData(createInitialFormData(selectedIncident));
+  }, [selectedId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -108,29 +130,20 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
       return;
     }
 
-    onSubmitted?.(selectedIncident.id);
-
-    setFormData({
-      confirmedSeverity: '',
-      accidentType: [],
-      vehiclesInvolved: '',
-      casualties: '',
-      ambulanceRequired: '',
-      trafficFlow: '',
-      laneBlockage: '',
-      roadType: '',
-      hazardousMaterial: '',
-      gpsCoordinates: '',
-      photos: [],
-      officerNotes: '',
+    onSubmitted?.(selectedIncident.id, {
+      confirmedSeverity: formData.confirmedSeverity as 'Mild' | 'Moderate' | 'Extreme',
+      confirmedAccidentType: enrichedType,
+      enrichmentDetails,
     });
+
+    setFormData(createInitialFormData(selectedIncident));
   };
 
   return (
-    <div className="p-4 h-full overflow-y-auto">
+    <div className="p-4 rounded-xl border border-[#dbeafe] bg-white">
       <h2 className="text-lg font-semibold mb-4 text-[var(--text-primary)]">Incident Enrichment Form</h2>
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-lg border border-[#e5e7eb] bg-[#f8fbff] p-3">
           <Label htmlFor="confirmedSeverity">Confirmed Severity *</Label>
           <Select value={formData.confirmedSeverity} onValueChange={value => handleSelectChange('confirmedSeverity', value)}>
             <SelectTrigger id="confirmedSeverity">
@@ -144,7 +157,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-lg border border-[#e5e7eb] bg-[#f8fbff] p-3">
           <Label>Accident Type *</Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {accidentTypes.map(type => (
@@ -161,7 +174,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border border-[#e5e7eb] bg-[#f8fbff] p-3">
           <div className="space-y-2">
             <Label htmlFor="vehiclesInvolved">Vehicles Involved *</Label>
             <Input
@@ -222,7 +235,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border border-[#e5e7eb] bg-[#f8fbff] p-3">
           <div className="space-y-2">
             <Label htmlFor="laneBlockage">Lane Blockage *</Label>
             <Select value={formData.laneBlockage} onValueChange={value => handleSelectChange('laneBlockage', value)}>
@@ -256,7 +269,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border border-[#e5e7eb] bg-[#f8fbff] p-3">
           <div className="space-y-2">
             <Label htmlFor="hazardousMaterial">Hazardous Material Present</Label>
             <Select value={formData.hazardousMaterial} onValueChange={value => handleSelectChange('hazardousMaterial', value)}>
@@ -282,12 +295,12 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-lg border border-[#e5e7eb] bg-[#f8fbff] p-3">
           <Label>Photo Update (up to 5)</Label>
           <Input type="file" multiple accept="image/*" onChange={handleFileChange} />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-lg border border-[#e5e7eb] bg-[#f8fbff] p-3">
           <Label>Officer Field Notes</Label>
           <Textarea
             name="officerNotes"

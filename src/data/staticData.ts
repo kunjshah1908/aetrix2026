@@ -111,7 +111,7 @@ export const decisionsForIncident: Record<string, DecisionCardData[]> = {
   'INC-0041': [
     { id: 'd1', type: 'SIGNAL RE-TIMING', confidence: 'HIGH', body: 'Node 41C: N→S green +35s, E→W reduce to 20s. Node 38B: +25s green on approach from Sector 11.', actions: ['APPLY', 'SKIP'] },
     { id: 'd2', type: 'DIVERSION ROUTE', confidence: 'HIGH', body: 'Activate: SG Hwy → Sector 11 Rd → CH-1 → re-merge at Infocity N. Est. delay reduction: 8 min.', actions: ['APPLY', 'SKIP'] },
-    { id: 'd3', type: 'PUBLIC ALERT', confidence: 'REVIEW', body: 'Twitter: TRAFFIC ALERT: Accident at Infocity Circle. Use Sector 11 Rd as alternate. #GandhinagarTraffic — SMS: Accident Infocity Circle. Take Sector 11 Rd alt. Delays expected.', actions: ['POST TWITTER', 'SEND SMS', 'SKIP'] },
+    { id: 'd3', type: 'PUBLIC ALERT', confidence: 'REVIEW', body: 'Twitter: TRAFFIC ALERT: Accident at Infocity Circle. Use Sector 11 Rd as alternate. #GandhinagarTraffic — SMS: Accident Infocity Circle. Take Sector 11 Rd alt. Delays expected.', actions: ['POST TWITTER', 'SKIP'] },
   ],
   'INC-0040': [],
   'INC-0038': [],
@@ -154,10 +154,7 @@ export const historyData: Array<{
 ];
 
 export const templateQueries: Record<string, (id: string) => string> = {
-  'ASSESS + RECOMMEND': (id) => `Assess ${id} and recommend immediate actions.`,
-  'SIGNAL RE-TIMING': (id) => `Recommend updated signal timing for intersections near ${id}.`,
-  'DRAFT PUBLIC ALERT': (id) => `Generate Twitter and SMS alert text for ${id}.`,
-  'AMBULANCE ROUTE': (id) => `Recommend fastest ambulance route to ${id} from nearest unit.`,
-  'OFFICER REDEPLOY': (id) => `Assess current officer deployment and recommend redeployment for ${id}.`,
-  'SHIFT BRIEFING': (_id) => `Generate shift handover briefing for all active incidents.`,
+  'ASSESS + RECOMMEND': (id) => `Assess ${id} and recommend immediate actions with signal, diversion, officer dispatch, and public alert options.`,
+  'SIGNAL RE-TIMING': (id) => `Recommend specific signal retiming adjustments for intersections near ${id} based on current sensor data.`,
+  'AMBULANCE ROUTE': (id) => `Recommend the fastest ambulance route and staging instructions for ${id}, including available ambulance units.`,
 };

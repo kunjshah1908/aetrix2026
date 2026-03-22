@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import DecisionCard from './DecisionCard';
-import { decisionsForIncident, type DecisionEntry, type DecisionCardData } from '../data/staticData';
+import { type DecisionEntry, type DecisionCardData } from '../data/staticData';
 
 interface Props {
   selectedId: string;
+  decisions: DecisionCardData[];
   onDecisionApply: (entry: DecisionEntry) => void;
   onDiversionApply: () => void;
-  liveDecisions?: DecisionCardData[];
 }
 
-export default function DecisionsPanel({ selectedId, onDecisionApply, onDiversionApply, liveDecisions }: Props) {
+export default function DecisionsPanel({ selectedId, decisions = [], onDecisionApply, onDiversionApply }: Props) {
   const [appliedDecisions, setAppliedDecisions] = useState<Record<string, string>>({});
-  const decisions = (liveDecisions && liveDecisions.length > 0)
-    ? liveDecisions
-    : decisionsForIncident[selectedId] || [];
+
 
   const handleApplyDecision = (cardId: string, action: string) => {
     if (action === 'SKIP') {

@@ -103,6 +103,16 @@ export async function queryCopilot(
 ): Promise<any> {
   const context = buildContext(incident, trafficSnapshot, nearestOfficer, diversionRoadNames);
 
+  const lowerMessage = userMessage.toLowerCase();
+  let focusInstructions = 'Please provide a focused incident response in JSON as per system schema.';
+  if (lowerMessage.includes('assess')) {
+    focusInstructions = 'Provide a concise situational assessment plus recommendations across signal retiming, diversion routing, officer orders, and public alert as appropriate.';
+  } else if (lowerMessage.includes('signal')) {
+    focusInstructions = 'Prioritize signal retiming plans; include narrative and any optional officer actions or diversion steps only if needed.';
+  } else if (lowerMessage.includes('ambulance')) {
+    focusInstructions = 'Prioritize ambulance routing and staging; include diversion route and timing assumptions, with minimal extra actions.';
+  }
+
   const response = await fetch(GROQ_URL, {
     method: 'POST',
     headers: {
@@ -115,7 +125,7 @@ export async function queryCopilot(
       max_tokens: 1024,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `CURRENT SITUATION CONTEXT:\n${context}\n\nOPERATOR QUERY: ${userMessage}` }
+        { role: 'user', content: `CURRENT SITUATION CONTEXT:\n${context}\n\nOPERATOR QUERY: ${userMessage}\n\nFOCUS INSTRUCTIONS: ${focusInstructions}` }
       ]
     })
   });
