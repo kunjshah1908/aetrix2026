@@ -118,7 +118,19 @@ export default function Dashboard() {
 
   // Handlers from both versions
   const handleDecisionApply = (entry: DecisionEntry) => {
-    setDecisionLog(prev => [entry, ...prev]);
+    const updated = addDecisionEntry(entry);
+    setDecisionLog(updated);
+
+    // Also create a command order for regional officers
+    addCommandOrder({
+      id: entry.id,
+      timestamp: entry.timestamp,
+      decisionType: entry.type,
+      incidentId: entry.incidentId,
+      summary: entry.summary,
+      operator: entry.operator,
+      status: 'PENDING',
+    });
   };
 
   const handleNewReport = (data: { location: string; severity: string; type: string; officer: string; notes: string }) => {
@@ -161,23 +173,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page">
-      <Topbar />
-      <div style={{ padding: '10px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '6px',
-            border: '1px solid var(--border-default)',
-            background: 'var(--bg-surface)',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          Logout
-        </button>
-      </div>
+      <Topbar onLogout={handleLogout} />
       <div className="dashboard-layout">
         <div className="dashboard-top">
           <MapPanel

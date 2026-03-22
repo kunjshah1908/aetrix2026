@@ -11,7 +11,7 @@ export default function DecisionCard({ card, applied, appliedTime, onApply }: Pr
   return (
     <div className="decision-card">
       <div className="decision-header">
-        <span className="decision-type">{card.type}</span>
+        <span className={`decision-type decision-type-${card.type.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}>{card.type}</span>
         <span className={`confidence-badge ${card.confidence === 'HIGH' ? 'confidence-high' : 'confidence-review'}`}>
           {card.confidence === 'HIGH' ? 'HIGH CONF' : 'REVIEW'}
         </span>
@@ -23,15 +23,34 @@ export default function DecisionCard({ card, applied, appliedTime, onApply }: Pr
         </div>
       ) : (
         <div className="decision-footer">
-          {card.actions.map(action => (
-            <button
-              key={action}
-              className={`decision-btn ${action === 'SKIP' ? 'skip' : 'apply'}`}
-              onClick={() => onApply(action)}
-            >
-              {action}
-            </button>
-          ))}
+          {card.actions.filter(action => action !== 'SEND SMS').map(action => {
+            if (action === 'POST TWITTER') {
+              return (
+                <button
+                  key={action}
+                  className="decision-btn apply"
+                  onClick={() => {
+                    const tweetText = card.body.replace(/^(Twitter:\s*)?/i, '').trim();
+                    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+                    window.open(url, '_blank');
+                    onApply(action);
+                  }}
+                >
+                  Tweet
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={action}
+                className={`decision-btn ${action === 'SKIP' ? 'skip' : 'apply'}`}
+                onClick={() => onApply(action)}
+              >
+                {action}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

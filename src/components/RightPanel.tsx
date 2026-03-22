@@ -21,8 +21,8 @@ export default function RightPanel({ selectedId, selectedIncident, trafficSnapsh
 
   const tabs = [
     { key: 'copilot' as const, label: 'COPILOT' },
-    { key: 'declog' as const, label: 'DEC LOG' },
-    { key: 'stats' as const, label: 'STATS' },
+    { key: 'decision-log' as const, label: 'Decision Logs' },
+    { key: 'statistics' as const, label: 'Statistics' },
   ];
 
   return (
