@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 
-export default function Topbar() {
+interface TopbarProps {
+  onLogout: () => void;
+}
+
+export default function Topbar({ onLogout }: TopbarProps) {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -27,7 +31,8 @@ export default function Topbar() {
           2 ACTIVE INC
         </span>
         <span className="topbar-clock">{clock}</span>
+        <button className="topbar-logout" onClick={onLogout}>Logout</button>
       </div>
-    </div>);
-
+    </div>
+  );
 }

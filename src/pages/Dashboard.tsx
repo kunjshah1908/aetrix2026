@@ -8,6 +8,7 @@ import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
 import { type Incident, type Severity, initialDecisionLog, type DecisionEntry, officers, type DecisionCardData } from '../data/staticData';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
+import { getDecisionLog, addDecisionEntry, onDecisionLogUpdated } from '../lib/decisionLogStore';
 import { getUserReports, markReportSolved, toIncidentFromUserReport } from '../lib/reportDatabase';
 import { getSupabaseAuthClient } from '../lib/supabaseClient';
 import { loadSimulationData, getCurrentSnapshot, advanceStep } from '../lib/simulation';
@@ -22,13 +23,14 @@ export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [showDiversion, setShowDiversion] = useState(false);
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
+  const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(getDecisionLog());
 
   // Simulation & traffic state (from your version)
   const [trafficSnapshot, setTrafficSnapshot] = useState<TrafficRow[]>([]);
   const [roadGraph, setRoadGraph] = useState<RoadGraph | null>(null);
   const [nearestOfficer, setNearestOfficer] = useState<ReturnType<typeof findNearestAvailableOfficer>>(null);
   const [diversionRoadNames, setDiversionRoadNames] = useState<string[]>([]);
+  const [algorithmDecisions, setAlgorithmDecisions] = useState<DecisionCardData[]>([]);
   const [liveDecisions, setLiveDecisions] = useState<DecisionCardData[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -79,9 +81,14 @@ export default function Dashboard() {
       }
     });
 
+    const unsubscribeDecisionLog = onDecisionLogUpdated(() => {
+      setDecisionLog(getDecisionLog());
+    });
+
     return () => {
       window.clearInterval(timer);
       unsubscribe();
+      unsubscribeDecisionLog();
     };
   }, [refreshIncidents, selectedId]);
 
@@ -108,17 +115,38 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!selectedIncident || !roadGraph) return;
+
     const nearest = findNearestAvailableOfficer(selectedIncident, officers);
     setNearestOfficer(nearest);
+
     const destLat = selectedIncident.lat + 0.009;
     const destLng = selectedIncident.lng + 0.009;
-    const diversion = computeDiversionRoute(roadGraph, selectedIncident.lat, selectedIncident.lng, destLat, destLng);
+    const diversion = computeDiversionRoute(roadGraph, selectedIncident.lat, selectedIncident.lng, destLat, destLng, trafficSnapshot);
+
     setDiversionRoadNames(diversion?.roadNames || []);
+
+    // Create an algorithmic decision card based on Dijkstra + real congestion
+    if (diversion) {
+      const congestionSummary = trafficSnapshot.length > 0
+        ? `Current snapshot ${trafficSnapshot.length} entries; key route roads: ${diversion.roadNames.slice(0, 5).join(', ')}`
+        : 'No traffic snapshot available';
+
+      setAlgorithmDecisions([{
+        id: `alg-diversion-${Date.now()}`,
+        type: 'DIVERSION ROUTE',
+        confidence: 'HIGH',
+        body: `Computed route via ${diversion.roadNames.join(' → ')}; est. ${diversion.estimatedMinutes} min using current speeds. ${congestionSummary}`,
+        actions: ['APPLY', 'SKIP'],
+      }]);
+    } else {
+      setAlgorithmDecisions([]);
+    }
   }, [selectedId, trafficSnapshot, roadGraph]);
 
   // Handlers from both versions
   const handleDecisionApply = (entry: DecisionEntry) => {
-    setDecisionLog(prev => [entry, ...prev]);
+    const updated = addDecisionEntry(entry);
+    setDecisionLog(updated);
   };
 
   const handleNewReport = (data: { location: string; severity: string; type: string; officer: string; notes: string }) => {
@@ -161,23 +189,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page">
-      <Topbar />
-      <div style={{ padding: '10px 20px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '6px',
-            border: '1px solid var(--border-default)',
-            background: 'var(--bg-surface)',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          Logout
-        </button>
-      </div>
+      <Topbar onLogout={handleLogout} />
       <div className="dashboard-layout">
         <div className="dashboard-top">
           <MapPanel
@@ -194,6 +206,8 @@ export default function Dashboard() {
             nearestOfficer={nearestOfficer}
             diversionRoadNames={diversionRoadNames}
             onLiveDecisions={setLiveDecisions}
+            decisionLog={decisionLog}
+            incidents={incidents}
           />
         </div>
         <div className="dashboard-bottom">
@@ -213,7 +227,7 @@ export default function Dashboard() {
               selectedId={selectedId}
               onDecisionApply={handleDecisionApply}
               onDiversionApply={() => setShowDiversion(true)}
-              liveDecisions={liveDecisions}
+              liveDecisions={[...algorithmDecisions, ...liveDecisions]}
             />
           </div>
         </div>

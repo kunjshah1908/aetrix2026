@@ -388,6 +388,22 @@ input, select, textarea, button {
 .dot-green { background: var(--green); }
 .dot-amber { background: var(--orange); }
 .topbar-clock { color: #f8fcff; font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.topbar-logout {
+  border: 1px solid rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.18);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.topbar-logout:hover {
+  background: rgba(255,255,255,0.32);
+  transform: translateY(-1px);
+}
 
 /* MAP MARKERS */
 .map-marker-cross,
@@ -513,11 +529,13 @@ input, select, textarea, button {
   align-items: stretch;
 }
 .dashboard-bottom-left {
-  flex: 1;
+  flex: 0 0 40%;
+  max-width: 40%;
   min-width: 0;
 }
 .dashboard-bottom-right {
-  flex: 1;
+  flex: 0 0 60%;
+  max-width: 60%;
   min-width: 0;
 }
 
@@ -1181,8 +1199,50 @@ input, select, textarea, button {
   text-transform: uppercase;
   color: #6b7280;
   letter-spacing: 1.5px;
-  font-weight: 600;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eff2ff;
+  border: 1px solid #dbeafe;
+  min-width: max-content;
   flex: 1;
+}
+
+.decision-type-diversion-route {
+  color: #064e3b;
+  background: #d1fae5;
+  border-color: #a7f3d0;
+}
+
+.decision-type-signal-re-timing {
+  color: #92400e;
+  background: #feecb2;
+  border-color: #fcd34d;
+}
+
+.decision-type-public-alert {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.decision-type-officer-dispatch,
+.decision-type-officer-redeploy {
+  color: #1e3a8a;
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.decision-type-ambulance-route {
+  color: #0d9488;
+  background: #ccfbf1;
+  border-color: #6ee7b7;
+}
+
+.decision-type-default {
+  color: #1f2937;
+  background: #e5e7eb;
+  border-color: #d1d5db;
 }
 .confidence-badge {
   font-size: 11px;
@@ -1278,6 +1338,61 @@ input, select, textarea, button {
 .copilot-input-row {
   border-top: 1px solid var(--border-default);
   padding: var(--dashboard-space);
+}
+
+/* Decision Log + Stats Enhancements */
+.declog-filters { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 10px; }
+.declog-select { min-width: 160px; padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; }
+
+.declog-entry {
+  display: grid;
+  grid-template-columns: 120px 160px 110px 1fr 120px;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 8px;
+}
+
+.declog-timestamp,
+.declog-type,
+.declog-incident,
+.declog-summary,
+.declog-operator { font-size: 13px; color: #334155; }
+
+.declog-type { font-weight: 700; color: #1d4ed8; }
+.declog-incident { color: #475569; }
+.declog-summary { color: #0f172a; }
+.declog-operator { color: #0f172a; font-weight: 600; }
+
+.declog-empty { text-align: center; color: #64748b; padding: 14px; }
+
+.export-btn {
+  margin-top: 10px;
+  align-self: flex-end;
+  cursor: pointer;
+  background: #1d4ed8;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  letter-spacing: 0.04em;
+}
+.export-btn:hover { background: #1e40af; }
+
+.stats-heading { font-size: 14px; letter-spacing: 0.12em; color: #083e7d; margin: 0 0 12px; text-transform: uppercase; }
+.stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.stat-cell { background: #ffffff; border: 1px solid #dbeafe; box-shadow: 0 8px 15px rgba(15, 23, 42,0.05); border-radius: 12px; padding: 12px; }
+.stat-value { font-size: 26px; font-weight: 700; color: #1e3a8a; }
+.stat-label { margin-top: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #334155; }
+.stat-sub { font-size: 11px; color: #475569; margin-top: 2px; }
+
+.decision-summary-list { list-style: none; margin: 6px 0 0; padding: 0 0 0 10px; color: #1f2937; font-size: 14px; line-height: 1.5; }
+.decision-summary-list li { margin-bottom: 4px; }
+
   display: flex;
   gap: var(--dashboard-space);
 }
