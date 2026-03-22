@@ -11,7 +11,7 @@ export default function DecisionCard({ card, applied, appliedTime, onApply }: Pr
   return (
     <div className="decision-card">
       <div className="decision-header">
-        <span className="decision-type">{card.type}</span>
+        <span className={`decision-type decision-type-${card.type.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}>{card.type}</span>
         <span className={`confidence-badge ${card.confidence === 'HIGH' ? 'confidence-high' : 'confidence-review'}`}>
           {card.confidence === 'HIGH' ? 'HIGH CONF' : 'REVIEW'}
         </span>

@@ -8,9 +8,10 @@ interface Props {
   onHistory: () => void;
   incidents: Incident[];
   onOpenIncident?: (id: string) => void;
+  onMarkSolved?: (id: string) => void;
 }
 
-export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, incidents, onOpenIncident }: Props) {
+export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, incidents, onOpenIncident, onMarkSolved }: Props) {
   const [resolvedOpen, setResolvedOpen] = useState(false);
 
   const badgeClass = (s: string) => {
@@ -27,7 +28,7 @@ export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, 
     <div className="sidebar-panel">
       <div className="section-header">ACTIVE INCIDENTS</div>
       <div className="incidents-list">
-        {incidents.filter(i => i.status === 'ACTIVE' || i.status === 'REPORTED').map(inc => (
+        {incidents.filter(i => i.status === 'ACTIVE').map(inc => (
           <div
             key={inc.id}
             className={`incident-card${selectedId === inc.id ? ' active' : ''}`}
@@ -40,7 +41,27 @@ export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, 
             <div className="incident-location">{inc.location}</div>
             <div className="incident-meta">
               <span className={badgeClass(inc.severity)}>{inc.severity}</span>
-              <span className="incident-elapsed">{inc.elapsed}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="incident-elapsed">{inc.elapsed}</span>
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMarkSolved?.(inc.id);
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #16a34a',
+                    background: '#16a34a',
+                    color: '#fff',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Solved
+                </button>
+              </div>
             </div>
           </div>
         ))}

@@ -6,11 +6,14 @@ interface Props {
   selectedId: string;
   onDecisionApply: (entry: DecisionEntry) => void;
   onDiversionApply: () => void;
+  liveDecisions?: DecisionCardData[];
 }
 
-export default function DecisionsPanel({ selectedId, onDecisionApply, onDiversionApply }: Props) {
+export default function DecisionsPanel({ selectedId, onDecisionApply, onDiversionApply, liveDecisions }: Props) {
   const [appliedDecisions, setAppliedDecisions] = useState<Record<string, string>>({});
-  const decisions = decisionsForIncident[selectedId] || [];
+  const decisions = (liveDecisions && liveDecisions.length > 0)
+    ? liveDecisions
+    : decisionsForIncident[selectedId] || [];
 
   const handleApplyDecision = (cardId: string, action: string) => {
     if (action === 'SKIP') {

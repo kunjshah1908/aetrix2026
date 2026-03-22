@@ -25,6 +25,8 @@ export interface Incident {
   lat: number;
   lng: number;
   type: string;
+  confirmedSeverity?: string;
+  confirmedAccidentType?: string;
   reporterName?: string;
   reporterPhone?: string;
   description?: string;

@@ -16,10 +16,13 @@ export interface UserReportRecord {
   location: string;
   accidentPoint: string;
   accidentType: UserAccidentType;
+  confirmedSeverity?: 'Mild' | 'Moderate' | 'Extreme' | null;
+  confirmedAccidentType?: string | null;
+  enrichmentDetails?: Incident['enrichmentDetails'] | null;
   description: string;
   imageDataUrl: string;
   createdAt: string;
-  status: 'REPORTED';
+  status: 'REPORTED' | 'ACTIVE' | 'RESOLVED';
   lat: number;
   lng: number;
 }
@@ -34,7 +37,37 @@ interface NewUserReportInput {
   imageDataUrl: string;
 }
 
+interface SubmitEnrichmentInput {
+  reportId: string;
+  confirmedSeverity: 'Mild' | 'Moderate' | 'Extreme';
+  confirmedAccidentType: string;
+  enrichmentDetails: NonNullable<Incident['enrichmentDetails']>;
+}
+
 const apiUrl = (path: string) => `${API_ROOT}${path}`;
+
+const parseAccidentPointCoords = (accidentPoint: string): { lat: number; lng: number } | null => {
+  const match = accidentPoint.match(/Lat\s*(-?\d+(?:\.\d+)?),\s*Lng\s*(-?\d+(?:\.\d+)?)/i);
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+};
+
+const withAccidentPointCoords = (report: UserReportRecord): UserReportRecord => {
+  const coords = parseAccidentPointCoords(report.accidentPoint);
+  if (!coords) {
+    return report;
+  }
+
+  return {
+    ...report,
+    lat: coords.lat,
+    lng: coords.lng,
+  };
+};
 
 const isUserReportRecord = (value: unknown): value is UserReportRecord => {
   if (!value || typeof value !== 'object') return false;
@@ -74,25 +107,38 @@ const writeLocalReports = (reports: UserReportRecord[]) => {
   window.localStorage.setItem(LOCAL_REPORTS_STORAGE_KEY, JSON.stringify(sortReportsNewestFirst(reports)));
 };
 
-const createFallbackReport = (input: NewUserReportInput): UserReportRecord => ({
-  id: `REP-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-  name: input.name,
-  phoneNumber: input.phoneNumber,
-  location: input.location,
-  accidentPoint: input.accidentPoint,
-  accidentType: input.accidentType,
-  description: input.description,
-  imageDataUrl: input.imageDataUrl,
-  createdAt: new Date().toISOString(),
-  status: 'REPORTED',
-  lat: 23.215 + (Math.random() - 0.5) * 0.02,
-  lng: 72.637 + (Math.random() - 0.5) * 0.02,
-});
+const createFallbackReport = (input: NewUserReportInput): UserReportRecord => {
+  const coords = parseAccidentPointCoords(input.accidentPoint);
+  return {
+    id: `REP-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    name: input.name,
+    phoneNumber: input.phoneNumber,
+    location: input.location,
+    accidentPoint: input.accidentPoint,
+    accidentType: input.accidentType,
+    confirmedSeverity: null,
+    confirmedAccidentType: null,
+    enrichmentDetails: null,
+    description: input.description,
+    imageDataUrl: input.imageDataUrl,
+    createdAt: new Date().toISOString(),
+    status: 'REPORTED',
+    lat: coords?.lat ?? 23.215 + (Math.random() - 0.5) * 0.02,
+    lng: coords?.lng ?? 72.637 + (Math.random() - 0.5) * 0.02,
+  };
+};
 
 const toSeverity = (accidentType: UserAccidentType): Severity => {
   if (accidentType === 'Extreme') return 'CRITICAL';
   if (accidentType === 'Medium') return 'MODERATE';
   return 'MINOR';
+};
+
+const toSeverityFromConfirmed = (confirmedSeverity: UserReportRecord['confirmedSeverity']): Severity | null => {
+  if (confirmedSeverity === 'Extreme') return 'CRITICAL';
+  if (confirmedSeverity === 'Moderate') return 'MODERATE';
+  if (confirmedSeverity === 'Mild') return 'MINOR';
+  return null;
 };
 
 const toElapsed = (createdAt: string): string => {
@@ -114,7 +160,7 @@ export const getUserReports = async (): Promise<UserReportRecord[]> => {
       throw new Error(`Unable to load reports from backend (HTTP ${response.status})`);
     }
 
-    const reports = (await response.json()) as UserReportRecord[];
+    const reports = ((await response.json()) as UserReportRecord[]).map(withAccidentPointCoords);
     return sortReportsNewestFirst(reports);
   } catch {
     if (!canUseLocalFallback()) {
@@ -172,20 +218,150 @@ export const removeUserReport = async (id: string): Promise<void> => {
   }
 };
 
+export const verifyUserReport = async (id: string): Promise<UserReportRecord> => {
+  try {
+    const response = await fetch(apiUrl(`/api/reports/${encodeURIComponent(id)}`), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: 'ACTIVE' }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Unable to verify report in backend (HTTP ${response.status})`);
+    }
+
+    return (await response.json()) as UserReportRecord;
+  } catch (error) {
+    if (!canUseLocalFallback()) {
+      throw error;
+    }
+
+    const existingReports = readLocalReports();
+    const index = existingReports.findIndex((report) => report.id === id);
+    if (index < 0) {
+      throw new Error('Report not found for verification.');
+    }
+
+    const updatedReport = { ...existingReports[index], status: 'ACTIVE' as const };
+    const nextReports = [...existingReports];
+    nextReports[index] = updatedReport;
+    writeLocalReports(nextReports);
+    return updatedReport;
+  }
+};
+
+export const markReportSolved = async (id: string): Promise<UserReportRecord> => {
+  try {
+    const response = await fetch(apiUrl(`/api/reports/${encodeURIComponent(id)}`), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: 'RESOLVED' }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Unable to mark report solved in backend (HTTP ${response.status})`);
+    }
+
+    return withAccidentPointCoords((await response.json()) as UserReportRecord);
+  } catch (error) {
+    if (!canUseLocalFallback()) {
+      throw error;
+    }
+
+    const existingReports = readLocalReports();
+    const index = existingReports.findIndex((report) => report.id === id);
+    if (index < 0) {
+      throw new Error('Report not found for solved update.');
+    }
+
+    const updatedReport: UserReportRecord = {
+      ...existingReports[index],
+      status: 'RESOLVED',
+    };
+    const nextReports = [...existingReports];
+    nextReports[index] = updatedReport;
+    writeLocalReports(nextReports);
+    return updatedReport;
+  }
+};
+
+export const submitReportEnrichment = async (input: SubmitEnrichmentInput): Promise<UserReportRecord> => {
+  try {
+    const response = await fetch(apiUrl(`/api/reports/${encodeURIComponent(input.reportId)}`), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status: 'ACTIVE',
+        confirmedSeverity: input.confirmedSeverity,
+        confirmedAccidentType: input.confirmedAccidentType,
+        enrichmentDetails: input.enrichmentDetails,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Unable to save enrichment in backend (HTTP ${response.status})`);
+    }
+
+    return withAccidentPointCoords((await response.json()) as UserReportRecord);
+  } catch (error) {
+    if (!canUseLocalFallback()) {
+      throw error;
+    }
+
+    const existingReports = readLocalReports();
+    const index = existingReports.findIndex((report) => report.id === input.reportId);
+    if (index < 0) {
+      throw new Error('Report not found for enrichment update.');
+    }
+
+    const existing = existingReports[index];
+    const updatedReport: UserReportRecord = {
+      ...existing,
+      status: 'ACTIVE',
+      confirmedSeverity: input.confirmedSeverity,
+      confirmedAccidentType: input.confirmedAccidentType,
+      enrichmentDetails: input.enrichmentDetails,
+      description: input.enrichmentDetails.officerNotes || existing.description,
+    };
+
+    const nextReports = [...existingReports];
+    nextReports[index] = updatedReport;
+    writeLocalReports(nextReports);
+    return updatedReport;
+  }
+};
+
 export const toIncidentFromUserReport = (report: UserReportRecord): Incident => {
+  const normalizedReport = withAccidentPointCoords(report);
+  const mappedConfirmedSeverity = toSeverityFromConfirmed(normalizedReport.confirmedSeverity);
+  const effectiveSeverity = mappedConfirmedSeverity || toSeverity(normalizedReport.accidentType);
+  const effectiveType = normalizedReport.confirmedAccidentType || normalizedReport.accidentType;
+  const effectiveDescription = normalizedReport.enrichmentDetails?.officerNotes || normalizedReport.description;
+
   return {
-    id: report.id,
-    location: report.location,
-    severity: toSeverity(report.accidentType),
-    elapsed: toElapsed(report.createdAt),
-    status: report.status,
-    lat: report.lat,
-    lng: report.lng,
-    type: report.accidentType,
-    reporterName: report.name,
-    reporterPhone: report.phoneNumber,
-    description: report.description,
-    reporterDescription: report.description,
-    imageDataUrl: report.imageDataUrl,
+    id: normalizedReport.id,
+    location: normalizedReport.location,
+    severity: effectiveSeverity,
+    elapsed: toElapsed(normalizedReport.createdAt),
+    status: normalizedReport.status,
+    lat: normalizedReport.lat,
+    lng: normalizedReport.lng,
+    type: effectiveType,
+    confirmedSeverity: normalizedReport.confirmedSeverity || undefined,
+    confirmedAccidentType: normalizedReport.confirmedAccidentType || undefined,
+    reporterName: normalizedReport.name,
+    reporterPhone: normalizedReport.phoneNumber,
+    description: effectiveDescription,
+    reporterDescription: normalizedReport.description,
+    imageDataUrl: normalizedReport.imageDataUrl,
+    enrichmentDetails: normalizedReport.enrichmentDetails || undefined,
   };
 };
