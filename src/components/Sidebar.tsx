@@ -26,7 +26,13 @@ export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, 
 
   return (
     <div className="sidebar-panel">
-      <div className="section-header">ACTIVE INCIDENTS</div>
+      <div className="section-header section-header-with-actions">
+        <span>ACTIVE INCIDENTS</span>
+        <div className="section-header-actions">
+          <button className="section-header-btn section-header-btn-primary" onClick={onNewReport}>+ NEW REPORT</button>
+          <button className="section-header-btn" onClick={onHistory}>FULL HISTORY</button>
+        </div>
+      </div>
       <div className="incidents-list">
         {incidents.filter(i => i.status === 'ACTIVE').map(inc => (
           <div
@@ -78,11 +84,6 @@ export default function Sidebar({ selectedId, onSelect, onNewReport, onHistory, 
             {r.id} · {r.time} · cleared in {r.clearTime}
           </div>
         ))}
-      </div>
-
-      <div className="sidebar-buttons">
-        <button className="btn-sidebar primary" onClick={onNewReport}>+ NEW REPORT</button>
-        <button className="btn-sidebar" onClick={onHistory}>FULL HISTORY</button>
       </div>
     </div>
   );
