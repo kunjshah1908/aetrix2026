@@ -204,8 +204,8 @@ export const addUserReport = async (input: NewUserReportInput): Promise<UserRepo
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `Unable to create report in backend (HTTP ${response.status})`);
+      const details = await readApiErrorMessage(response, `Unable to create report in backend (HTTP ${response.status})`);
+      throw new Error(details);
     }
 
     return (await response.json()) as UserReportRecord;
