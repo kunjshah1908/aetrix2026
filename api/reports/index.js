@@ -7,6 +7,21 @@ import {
   reportsTable,
 } from '../_lib/supabase.js';
 
+const formatDbError = (error, fallback) => {
+  if (!error || typeof error !== 'object') return fallback;
+  const message = typeof error.message === 'string' && error.message.trim() ? error.message.trim() : fallback;
+  const code = typeof error.code === 'string' && error.code.trim() ? error.code.trim() : null;
+  const details = typeof error.details === 'string' && error.details.trim() ? error.details.trim() : null;
+  const hint = typeof error.hint === 'string' && error.hint.trim() ? error.hint.trim() : null;
+
+  return {
+    error: message,
+    code,
+    details,
+    hint,
+  };
+};
+
 const parseAccidentPointCoords = (accidentPoint) => {
   if (typeof accidentPoint !== 'string') return null;
   const match = accidentPoint.match(/Lat\s*(-?\d+(?:\.\d+)?),\s*Lng\s*(-?\d+(?:\.\d+)?)/i);
@@ -47,13 +62,16 @@ const getReports = async (res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      res.status(500).json({ error: 'Failed to load reports' });
+      res.status(500).json(formatDbError(error, 'Failed to load reports'));
       return;
     }
 
     res.status(200).json((data || []).map(mapRowToReport));
-  } catch {
-    res.status(500).json({ error: 'Unexpected error while loading reports' });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Unexpected error while loading reports',
+      details: error instanceof Error ? error.message : null,
+    });
   }
 };
 
@@ -107,12 +125,15 @@ const createReport = async (req, res) => {
     });
 
     if (error) {
-      res.status(500).json({ error: 'Failed to create report' });
+      res.status(500).json(formatDbError(error, 'Failed to create report'));
       return;
     }
 
     res.status(201).json(report);
-  } catch {
-    res.status(500).json({ error: 'Unexpected error while creating report' });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Unexpected error while creating report',
+      details: error instanceof Error ? error.message : null,
+    });
   }
 };
