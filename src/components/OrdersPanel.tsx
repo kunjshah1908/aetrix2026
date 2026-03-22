@@ -7,6 +7,7 @@ interface Props {
 
 export default function OrdersPanel({ officerBadge }: Props) {
   const [orders, setOrders] = useState<CommandOrder[]>([]);
+  const [ordersError, setOrdersError] = useState('');
   const [cancelReason, setCancelReason] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -14,8 +15,13 @@ export default function OrdersPanel({ officerBadge }: Props) {
     const syncOrders = async () => {
       try {
         setOrders(await getPendingOrders());
-      } catch {
-        // Keep the existing list if refresh fails.
+        setOrdersError('');
+      } catch (error) {
+        if (error instanceof Error && error.message.trim()) {
+          setOrdersError(error.message);
+          return;
+        }
+        setOrdersError('Unable to load command center orders from backend.');
       }
     };
 
@@ -66,6 +72,11 @@ export default function OrdersPanel({ officerBadge }: Props) {
   return (
     <div className="orders-panel">
       <div className="section-header">COMMAND CENTER ORDERS ({orders.length})</div>
+      {ordersError && (
+        <div style={{ margin: '10px 0', padding: '10px', borderRadius: '8px', background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
+          {ordersError}
+        </div>
+      )}
       {orders.length === 0 ? (
         <div className="orders-empty" style={{ textAlign: 'center', padding: '20px' }}>
           No pending orders.

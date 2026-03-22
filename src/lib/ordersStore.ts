@@ -13,6 +13,8 @@ export interface CommandOrder {
 
 const STORAGE_KEY = 'aetrix.commandOrders.v1';
 const EVENT_NAME = 'command-orders-updated';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_ROOT = API_BASE_URL || '';
 
 const canUseLocalFallback = () =>
   typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -22,7 +24,7 @@ const notifyOrdersUpdated = () => {
   window.dispatchEvent(new CustomEvent(EVENT_NAME));
 };
 
-const apiUrl = (path: string) => path;
+const apiUrl = (path: string) => `${API_ROOT}${path}`;
 
 const readApiErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   try {
