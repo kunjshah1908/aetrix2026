@@ -140,7 +140,7 @@ export default function CommandCenterAuth() {
       <div className="command-auth-card">
         <div className="command-auth-header">
           <div className="command-auth-chip">Command Center Access</div>
-          <h1>{mode === 'signin' ? 'Login to Command Center' : 'Create Command Center Account'}</h1>
+          <h1>{mode === 'signin' ? 'Login' : 'Create Command Center Account'}</h1>
           <p>
             {mode === 'signin'
               ? 'Use your login ID and password to access the Command Center dashboard.'

@@ -140,7 +140,7 @@ export default function RegionalOfficerAuth() {
       <div className="regional-auth-card">
         <div className="regional-auth-header">
           <div className="regional-auth-chip">Regional Officer Access</div>
-          <h1>{mode === 'signin' ? 'Login to Command Region' : 'Create Regional Officer Account'}</h1>
+          <h1>{mode === 'signin' ? 'Login' : 'Create Regional Officer Account'}</h1>
           <p>
             {mode === 'signin'
               ? 'Use your login ID and password to access the Regional Officer dashboard.'
