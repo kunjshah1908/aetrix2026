@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/Topbar';
 import Sidebar from '../components/Sidebar';
@@ -6,10 +6,14 @@ import MapPanel from '../components/MapPanel';
 import RightPanel from '../components/RightPanel';
 import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
-import { type Incident, type Severity, initialDecisionLog, type DecisionEntry } from '../data/staticData';
-import { upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
+import { type Incident, type Severity, initialDecisionLog, type DecisionEntry, officers, type DecisionCardData } from '../data/staticData';
+import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
 import { getUserReports, markReportSolved, toIncidentFromUserReport } from '../lib/reportDatabase';
 import { getSupabaseAuthClient } from '../lib/supabaseClient';
+import { loadSimulationData, getCurrentSnapshot, advanceStep } from '../lib/simulation';
+import { findNearestAvailableOfficer, computeDiversionRoute } from '../lib/algorithms';
+import { buildRoadGraph, type RoadGraph } from '../lib/roadGraph';
+import { type TrafficRow } from '../lib/types';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -19,7 +23,18 @@ export default function Dashboard() {
   const [showDiversion, setShowDiversion] = useState(false);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [decisionLog, setDecisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
+
+  // Simulation & traffic state (from your version)
+  const [trafficSnapshot, setTrafficSnapshot] = useState<TrafficRow[]>([]);
+  const [roadGraph, setRoadGraph] = useState<RoadGraph | null>(null);
+  const [nearestOfficer, setNearestOfficer] = useState<ReturnType<typeof findNearestAvailableOfficer>>(null);
+  const [diversionRoadNames, setDiversionRoadNames] = useState<string[]>([]);
+  const [liveDecisions, setLiveDecisions] = useState<DecisionCardData[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Incident enrichment logic (from your friend's version)
   const openIncident = incidents.find((incident) => incident.id === openIncidentId) || null;
+  const selectedIncident = incidents.find(i => i.id === selectedId) || null;
   const openIncidentEnrichment = openIncident?.enrichmentDetails;
   const openIncidentAccidentTypes = openIncidentEnrichment?.accidentType?.filter(Boolean) || (openIncident?.confirmedAccidentType ? [openIncident.confirmedAccidentType] : []);
   const openIncidentHasEnrichment = Boolean(
@@ -28,7 +43,9 @@ export default function Dashboard() {
     openIncidentAccidentTypes.length > 0 ||
     openIncident?.description,
   );
+  const mapRef = useRef<HTMLDivElement>(null);
 
+  // Incident refresh logic (from your friend's version)
   const refreshIncidents = useCallback(async () => {
     try {
       const reports = await getUserReports();
@@ -46,17 +63,60 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Use both refreshIncidents and command center store for robustness
   useEffect(() => {
     void refreshIncidents();
     const timer = window.setInterval(() => {
       void refreshIncidents();
     }, 2000);
 
+    // Also listen to command center store updates
+    const unsubscribe = onCommandCenterIncidentsUpdated(() => {
+      const stored = getCommandCenterIncidents();
+      setIncidents(stored);
+      if (stored.length > 0 && !stored.some((item) => item.id === selectedId)) {
+        setSelectedId(stored[0].id);
+      }
+    });
+
     return () => {
       window.clearInterval(timer);
+      unsubscribe();
     };
-  }, [refreshIncidents]);
+  }, [refreshIncidents, selectedId]);
 
+  // Simulation/traffic logic (from your version)
+  useEffect(() => {
+    async function init() {
+      await loadSimulationData();
+      setTrafficSnapshot(getCurrentSnapshot());
+      const res = await fetch('/gandhinagar.geojson');
+      const geoJSON = await res.json();
+      const graph = buildRoadGraph(geoJSON);
+      setRoadGraph(graph);
+    }
+    init();
+  }, []);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      advanceStep();
+      setTrafficSnapshot(getCurrentSnapshot());
+    }, 5000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedIncident || !roadGraph) return;
+    const nearest = findNearestAvailableOfficer(selectedIncident, officers);
+    setNearestOfficer(nearest);
+    const destLat = selectedIncident.lat + 0.009;
+    const destLng = selectedIncident.lng + 0.009;
+    const diversion = computeDiversionRoute(roadGraph, selectedIncident.lat, selectedIncident.lng, destLat, destLng);
+    setDiversionRoadNames(diversion?.roadNames || []);
+  }, [selectedId, trafficSnapshot, roadGraph]);
+
+  // Handlers from both versions
   const handleDecisionApply = (entry: DecisionEntry) => {
     setDecisionLog(prev => [entry, ...prev]);
   };
@@ -127,7 +187,14 @@ export default function Dashboard() {
             showDiversion={showDiversion}
             showReportedMarkers={false}
           />
-          <RightPanel selectedId={selectedId} />
+          <RightPanel
+            selectedId={selectedId}
+            selectedIncident={selectedIncident}
+            trafficSnapshot={trafficSnapshot}
+            nearestOfficer={nearestOfficer}
+            diversionRoadNames={diversionRoadNames}
+            onLiveDecisions={setLiveDecisions}
+          />
         </div>
         <div className="dashboard-bottom">
           <div className="dashboard-bottom-left bottom-panel">
@@ -146,6 +213,7 @@ export default function Dashboard() {
               selectedId={selectedId}
               onDecisionApply={handleDecisionApply}
               onDiversionApply={() => setShowDiversion(true)}
+              liveDecisions={liveDecisions}
             />
           </div>
         </div>
