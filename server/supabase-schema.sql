@@ -27,6 +27,24 @@ create index if not exists idx_user_reports_created_at on public.user_reports (c
 
 alter table public.user_reports enable row level security;
 
+create table if not exists public.command_orders (
+  id text primary key,
+  timestamp text not null,
+  decision_type text not null,
+  incident_id text not null,
+  summary text not null,
+  operator text not null,
+  status text not null,
+  acknowledged_by text,
+  acknowledged_at text,
+  cancellation_reason text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_command_orders_timestamp on public.command_orders (created_at desc);
+
+alter table public.command_orders enable row level security;
+
 -- Backend uses service role key, so policy can stay restrictive.
 -- If you want to allow anon direct access later, add specific policies.
 

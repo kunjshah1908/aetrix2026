@@ -6,39 +6,61 @@ interface Props {
 }
 
 export default function OrdersPanel({ officerBadge }: Props) {
-  const [orders, setOrders] = useState<CommandOrder[]>(getPendingOrders());
+  const [orders, setOrders] = useState<CommandOrder[]>([]);
   const [cancelReason, setCancelReason] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const syncOrders = () => {
-      setOrders(getPendingOrders());
+    const syncOrders = async () => {
+      try {
+        setOrders(await getPendingOrders());
+      } catch {
+        // Keep the existing list if refresh fails.
+      }
     };
 
-    syncOrders();
-    const unsubscribe = onCommandOrdersUpdated(syncOrders);
+    void syncOrders();
+    const timer = window.setInterval(() => {
+      void syncOrders();
+    }, 2000);
 
-    return unsubscribe;
+    const unsubscribe = onCommandOrdersUpdated(() => {
+      void syncOrders();
+    });
+
+    return () => {
+      window.clearInterval(timer);
+      unsubscribe();
+    };
   }, []);
 
-  const handleAcknowledge = (orderId: string) => {
-    const updated = acknowledgeOrder(orderId, officerBadge);
-    setOrders(updated.filter(o => o.status === 'PENDING'));
+  const handleAcknowledge = async (orderId: string) => {
+    try {
+      const updated = await acknowledgeOrder(orderId, officerBadge);
+      setOrders(updated.filter((o) => o.status === 'PENDING'));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to acknowledge command order.');
+    }
   };
 
   const handleCancelClick = (orderId: string) => {
     setCancellingId(orderId);
   };
 
-  const handleConfirmCancel = (orderId: string) => {
+  const handleConfirmCancel = async (orderId: string) => {
     if (!cancelReason.trim()) {
       alert('Please provide a reason for cancellation');
       return;
     }
-    const updated = cancelOrder(orderId, cancelReason);
-    setOrders(updated.filter(o => o.status === 'PENDING'));
-    setCancellingId(null);
-    setCancelReason('');
+
+    try {
+      const updated = await cancelOrder(orderId, cancelReason);
+      setOrders(updated.filter((o) => o.status === 'PENDING'));
+      setCancellingId(null);
+      setCancelReason('');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to cancel command order.');
+    }
   };
 
   return (

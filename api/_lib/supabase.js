@@ -4,6 +4,7 @@ const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export const reportsTable = 'user_reports';
+export const ordersTable = 'command_orders';
 
 let cachedClient = null;
 
@@ -42,6 +43,19 @@ export const mapRowToReport = (row) => ({
   status: row.status,
   lat: row.lat,
   lng: row.lng,
+});
+
+export const mapRowToOrder = (row) => ({
+  id: row.id,
+  timestamp: row.timestamp,
+  decisionType: row.decision_type,
+  incidentId: row.incident_id,
+  summary: row.summary,
+  operator: row.operator,
+  status: row.status,
+  acknowledgedBy: row.acknowledged_by || undefined,
+  acknowledgedAt: row.acknowledged_at || undefined,
+  cancellationReason: row.cancellation_reason || undefined,
 });
 
 export const parseJsonBody = async (req) => {

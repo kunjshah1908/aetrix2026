@@ -142,7 +142,7 @@ export default function Dashboard() {
     setDecisionLog(updated);
 
     // Also create a command order for regional officers
-    addCommandOrder({
+    void addCommandOrder({
       id: entry.id,
       timestamp: entry.timestamp,
       decisionType: entry.type,
@@ -150,6 +150,8 @@ export default function Dashboard() {
       summary: entry.summary,
       operator: entry.operator,
       status: 'PENDING',
+    }).catch((error) => {
+      alert(error instanceof Error ? error.message : 'Unable to send command order to regional dashboard.');
     });
   };
 

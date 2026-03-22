@@ -47,6 +47,9 @@ Backend runs on http://localhost:4000.
 - GET /api/reports
 - POST /api/reports
 - DELETE /api/reports/:id
+- GET /api/orders
+- POST /api/orders
+- PATCH /api/orders/:id
 
 ## Regional Officer Authentication
 
@@ -62,6 +65,7 @@ Backend runs on http://localhost:4000.
 	- Production: `https://<your-vercel-domain>`
 3. In SQL Editor, run [server/supabase-schema.sql](server/supabase-schema.sql) to create/update:
 	- `public.user_reports`
+	- `public.command_orders`
 	- `public.regional_officer_profiles` with RLS policies
 4. In Supabase Project Settings -> API, copy:
 	- Project URL -> set as `VITE_SUPABASE_URL`
