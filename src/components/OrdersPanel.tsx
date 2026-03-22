@@ -38,7 +38,7 @@ export default function OrdersPanel({ officerBadge }: Props) {
     <div className="orders-panel">
       <div className="section-header">COMMAND CENTER ORDERS ({orders.length})</div>
       {orders.length === 0 ? (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+        <div className="orders-empty" style={{ textAlign: 'center', padding: '20px' }}>
           No pending orders.
         </div>
       ) : (
@@ -87,10 +87,10 @@ export default function OrdersPanel({ officerBadge }: Props) {
               ) : (
                 <div className="order-actions">
                   <button className="order-btn okay" onClick={() => handleAcknowledge(order.id)}>
-                    OKAY
+                    ACKNOWLEDGE
                   </button>
                   <button className="order-btn cancel" onClick={() => handleCancelClick(order.id)}>
-                    CANCEL
+                    CANCEL ORDER
                   </button>
                 </div>
               )}
