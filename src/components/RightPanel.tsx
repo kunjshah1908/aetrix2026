@@ -13,12 +13,11 @@ interface Props {
   nearestOfficer: { officer: Officer; distanceMetres: number; estimatedMinutes: number } | null;
   diversionRoadNames: string[];
   onLiveDecisions: (decisions: DecisionCardData[]) => void;
-  decisionLog: DecisionEntry[];
-  incidents: Incident[];
 }
 
-export default function RightPanel({ selectedId, selectedIncident, trafficSnapshot, nearestOfficer, diversionRoadNames, onLiveDecisions, decisionLog, incidents }: Props) {
-  const [activeTab, setActiveTab] = useState<'copilot' | 'decision-log' | 'statistics'>('copilot');
+export default function RightPanel({ selectedId, selectedIncident, trafficSnapshot, nearestOfficer, diversionRoadNames, onLiveDecisions }: Props) {
+  const [activeTab, setActiveTab] = useState<'copilot' | 'declog' | 'stats'>('copilot');
+  const [decisionLog] = useState<DecisionEntry[]>(initialDecisionLog);
 
   const tabs = [
     { key: 'copilot' as const, label: 'COPILOT' },
@@ -50,8 +49,8 @@ export default function RightPanel({ selectedId, selectedIncident, trafficSnapsh
             onLiveDecisions={onLiveDecisions}
           />
         )}
-        {activeTab === 'decision-log' && <DecisionLogTab entries={decisionLog} />}
-        {activeTab === 'statistics' && <StatsTab incidents={incidents} decisionLog={decisionLog} />}
+        {activeTab === 'declog' && <DecisionLogTab entries={decisionLog} />}
+        {activeTab === 'stats' && <StatsTab />}
       </div>
     </div>
   );

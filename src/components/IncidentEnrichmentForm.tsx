@@ -6,7 +6,6 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { type EnrichmentDetails, type Incident } from '../data/staticData';
 import { submitReportEnrichment } from '../lib/reportDatabase';
-import { upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
 
 interface Props {
   selectedId: string;
@@ -98,7 +97,7 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
       return;
     }
 
-    if (!formData.confirmedSeverity || !formData.vehiclesInvolved || !formData.casualties || !formData.trafficFlow || !formData.laneBlockage || !formData.roadType) {
+    if (!formData.confirmedSeverity || formData.accidentType.length === 0 || !formData.vehiclesInvolved || !formData.casualties || !formData.trafficFlow || !formData.laneBlockage || !formData.roadType) {
       alert('Please fill all required enrichment fields before verification.');
       return;
     }
@@ -130,16 +129,6 @@ export default function IncidentEnrichmentForm({ selectedId, selectedIncident, o
       alert('Unable to store enrichment details in backend. Please try again.');
       return;
     }
-
-    upsertCommandCenterIncident({
-      ...selectedIncident,
-      status: 'ACTIVE',
-      type: enrichedType,
-      confirmedSeverity: formData.confirmedSeverity,
-      confirmedAccidentType: enrichedType,
-      description: enrichmentDetails.officerNotes || selectedIncident.description,
-      enrichmentDetails,
-    });
 
     onSubmitted?.(selectedIncident.id, {
       confirmedSeverity: formData.confirmedSeverity as 'Mild' | 'Moderate' | 'Extreme',

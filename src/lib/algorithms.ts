@@ -1,6 +1,5 @@
 import { RoadGraph, findNearestNode, dijkstra } from './roadGraph';
 import { Officer, Incident } from '../data/staticData';
-import { TrafficRow } from './types';
 
 // ── HAVERSINE (straight line distance in metres) ──────────────────
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -66,8 +65,7 @@ export function computeDiversionRoute(
   incidentLat: number,
   incidentLng: number,
   destinationLat: number,
-  destinationLng: number,
-  trafficSnapshot: TrafficRow[]
+  destinationLng: number
 ): DiversionResult | null {
   // find nearest graph nodes to incident and destination
   const startNode = findNearestNode(graph, incidentLat, incidentLng);
@@ -76,19 +74,7 @@ export function computeDiversionRoute(
   if (!startNode || !endNode) return null;
   if (startNode === endNode) return null;
 
-  const trafficByRoad = new Map<string, TrafficRow>();
-  for (const row of trafficSnapshot) {
-    trafficByRoad.set(row.roadName.toLowerCase(), row);
-  }
-
-  const result = dijkstra(graph, startNode, endNode, (edge) => {
-    // dynamically weight by congestion-based estimated time in seconds
-    const row = trafficByRoad.get(edge.name.toLowerCase());
-    const effectiveSpeed = row && row.speedKmh > 5 ? row.speedKmh : edge.speedLimit || 30;
-    const edgeTimeSec = edge.distance / (effectiveSpeed * 1000 / 3600);
-    return edgeTimeSec;
-  });
-
+  const result = dijkstra(graph, startNode, endNode);
   if (!result) return null;
 
   // convert node IDs back to lat/lng coordinates for the map polyline
@@ -97,30 +83,23 @@ export function computeDiversionRoute(
     return [node.lat, node.lon];
   });
 
-  // collect road names and congestion details along the path
+  // collect road names along the path
   const roadNameSet = new Set<string>();
-  let totalTimeSec = 0;
-
   for (let i = 0; i < result.path.length - 1; i++) {
     const fromId = result.path[i];
     const toId = result.path[i + 1];
     const neighbors = graph.adjacency.get(fromId) || [];
     const edge = neighbors.find(n => n.nodeId === toId);
-    if (!edge) continue;
-    if (edge.edge.name) roadNameSet.add(edge.edge.name);
-
-    const row = trafficByRoad.get(edge.edge.name.toLowerCase());
-    const effectiveSpeed = row && row.speedKmh > 5 ? row.speedKmh : edge.edge.speedLimit || 30;
-    totalTimeSec += edge.edge.distance / (effectiveSpeed * 1000 / 3600);
+    if (edge?.edge.name) roadNameSet.add(edge.edge.name);
   }
 
-  const totalDistanceMetres = Math.round(result.totalDistance); // using time-based metric unit: seconds, but we set totalDistance as cost for consistency
-  const estimatedMinutes = Math.round(totalTimeSec / 60);
+  // assume average city speed 35 km/h for diversion route
+  const estimatedMinutes = Math.round((result.totalDistance / 1000 / 35) * 60);
 
   return {
     pathCoordinates,
     roadNames: Array.from(roadNameSet),
-    totalDistanceMetres,
+    totalDistanceMetres: Math.round(result.totalDistance),
     estimatedMinutes,
   };
 }

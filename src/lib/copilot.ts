@@ -62,10 +62,6 @@ function buildContext(
     ? `${nearestOfficer.officer.badge} ${nearestOfficer.officer.name} — ${nearestOfficer.distanceMetres}m away, ETA ${nearestOfficer.estimatedMinutes} min`
     : 'No available officers';
 
-  const algorithmAdvice = diversionRoadNames.length > 0
-    ? `ALGORITHM DIVERSION ROUTE: ${diversionRoadNames.join(' → ')} (from Dijkstra congestion-aware).`
-    : 'ALGORITHM DIVERSION ROUTE: none';
-
   return `
 INCIDENT:
   ID: ${incident.id}
@@ -89,7 +85,7 @@ NEAREST AVAILABLE OFFICER:
 
 ALGORITHM-COMPUTED DIVERSION PATH:
   ${diversionText}
-${algorithmAdvice ? algorithmAdvice + '\n' : ''}
+
 ALL AVAILABLE OFFICERS:
 ${officerLines}
 

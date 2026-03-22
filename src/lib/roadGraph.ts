@@ -136,8 +136,7 @@ export function findNearestNode(
 export function dijkstra(
   graph: RoadGraph,
   startId: string,
-  endId: string,
-  costFn?: (edge: Edge) => number
+  endId: string
 ): { path: string[]; totalDistance: number } | null {
   const dist = new Map<string, number>();
   const prev = new Map<string, string>();
@@ -159,9 +158,9 @@ export function dijkstra(
 
     for (const { nodeId, edge } of graph.adjacency.get(current) || []) {
       if (visited.has(nodeId)) continue;
-      const edgeCost = costFn ? costFn(edge) : edge.distance;
-      const newDist = dist.get(current)! + edgeCost;
+      const newDist = dist.get(current)! + edge.distance;
       if (newDist < dist.get(nodeId)!) {
+        
         dist.set(nodeId, newDist);
         prev.set(nodeId, current);
         queue.push({ id: nodeId, cost: newDist });
@@ -172,10 +171,10 @@ export function dijkstra(
   if (dist.get(endId) === Infinity) return null;
 
   const path: string[] = [];
-  let cur: string | undefined = endId;
+  let cur = endId;
   while (cur) {
     path.unshift(cur);
-    cur = prev.get(cur);
+    cur = prev.get(cur)!;
   }
 
   return { path, totalDistance: dist.get(endId)! };
