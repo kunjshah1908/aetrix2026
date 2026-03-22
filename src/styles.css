@@ -1338,6 +1338,8 @@ input, select, textarea, button {
 .copilot-input-row {
   border-top: 1px solid var(--border-default);
   padding: var(--dashboard-space);
+  display: flex;
+  gap: var(--dashboard-space);
 }
 
 /* Decision Log + Stats Enhancements */
@@ -1393,9 +1395,6 @@ input, select, textarea, button {
 .decision-summary-list { list-style: none; margin: 6px 0 0; padding: 0 0 0 10px; color: #1f2937; font-size: 14px; line-height: 1.5; }
 .decision-summary-list li { margin-bottom: 4px; }
 
-  display: flex;
-  gap: var(--dashboard-space);
-}
 .copilot-input {
   flex: 1;
   background: var(--bg-card);
@@ -1547,6 +1546,14 @@ input, select, textarea, button {
   gap: var(--dashboard-space);
   z-index: 1000;
 }
+
+.map-recenter-control {
+  position: absolute;
+  bottom: 15px;
+  right: 10px;
+  z-index: 1000;
+}
+
 .map-control-btn {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
@@ -1749,6 +1756,17 @@ input, select, textarea, button {
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-surface); }
 ::-webkit-scrollbar-thumb { background: var(--border-default); }
+
+.clean-modal-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.clean-modal-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
 
 /* DECISIONS PANEL */
 .decisions-panel {
