@@ -154,10 +154,7 @@ export const historyData: Array<{
 ];
 
 export const templateQueries: Record<string, (id: string) => string> = {
-  'ASSESS + RECOMMEND': (id) => `Assess ${id} and recommend immediate actions.`,
-  'SIGNAL RE-TIMING': (id) => `Recommend updated signal timing for intersections near ${id}.`,
-  'DRAFT PUBLIC ALERT': (id) => `Generate Twitter and SMS alert text for ${id}.`,
-  'AMBULANCE ROUTE': (id) => `Recommend fastest ambulance route to ${id} from nearest unit.`,
-  'OFFICER REDEPLOY': (id) => `Assess current officer deployment and recommend redeployment for ${id}.`,
-  'SHIFT BRIEFING': (_id) => `Generate shift handover briefing for all active incidents.`,
+  'ASSESS + RECOMMEND': (id) => `Assess ${id} and recommend immediate actions with signal, diversion, officer dispatch, and public alert options.`,
+  'SIGNAL RE-TIMING': (id) => `Recommend specific signal retiming adjustments for intersections near ${id} based on current sensor data.`,
+  'AMBULANCE ROUTE': (id) => `Recommend the fastest ambulance route and staging instructions for ${id}, including available ambulance units.`,
 };

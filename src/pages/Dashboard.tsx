@@ -6,7 +6,7 @@ import MapPanel from '../components/MapPanel';
 import RightPanel from '../components/RightPanel';
 import DecisionsPanel from '../components/DecisionsPanel';
 import NewReportModal from '../components/NewReportModal';
-import { type Incident, type Severity, initialDecisionLog, type DecisionEntry, officers, type DecisionCardData } from '../data/staticData';
+import { type Incident, type Severity, initialDecisionLog, type DecisionEntry, officers, decisionsForIncident, type DecisionCardData } from '../data/staticData';
 import { getCommandCenterIncidents, onCommandCenterIncidentsUpdated, upsertCommandCenterIncident } from '../lib/commandCenterIncidentStore';
 import { getUserReports, markReportSolved, toIncidentFromUserReport } from '../lib/reportDatabase';
 import { getSupabaseAuthClient } from '../lib/supabaseClient';
@@ -30,6 +30,19 @@ export default function Dashboard() {
   const [nearestOfficer, setNearestOfficer] = useState<ReturnType<typeof findNearestAvailableOfficer>>(null);
   const [diversionRoadNames, setDiversionRoadNames] = useState<string[]>([]);
   const [liveDecisions, setLiveDecisions] = useState<DecisionCardData[]>([]);
+  const [incidentDecisions, setIncidentDecisions] = useState<Record<string, DecisionCardData[]>>(() => {
+    if (typeof window !== 'undefined') {
+      const persisted = localStorage.getItem('incidentDecisions');
+      if (persisted) {
+        try {
+          return JSON.parse(persisted);
+        } catch {
+          // fall back
+        }
+      }
+    }
+    return { ...decisionsForIncident };
+  });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Incident enrichment logic (from your friend's version)
@@ -116,6 +129,11 @@ export default function Dashboard() {
     setDiversionRoadNames(diversion?.roadNames || []);
   }, [selectedId, trafficSnapshot, roadGraph]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('incidentDecisions', JSON.stringify(incidentDecisions));
+  }, [incidentDecisions]);
+
   // Handlers from both versions
   const handleDecisionApply = (entry: DecisionEntry) => {
     const updated = addDecisionEntry(entry);
@@ -130,6 +148,22 @@ export default function Dashboard() {
       summary: entry.summary,
       operator: entry.operator,
       status: 'PENDING',
+    });
+  };
+
+  const handleLiveDecisions = (decisions: DecisionCardData[]) => {
+    setLiveDecisions(decisions);
+    if (!selectedId) return;
+
+    setIncidentDecisions(prev => {
+      const existing = prev[selectedId] || [];
+      const merged = [...existing];
+      decisions.forEach((d) => {
+        if (!merged.some((m) => m.id === d.id)) {
+          merged.push(d);
+        }
+      });
+      return { ...prev, [selectedId]: merged };
     });
   };
 
@@ -186,10 +220,12 @@ export default function Dashboard() {
           <RightPanel
             selectedId={selectedId}
             selectedIncident={selectedIncident}
+            incidents={incidents}
             trafficSnapshot={trafficSnapshot}
             nearestOfficer={nearestOfficer}
             diversionRoadNames={diversionRoadNames}
-            onLiveDecisions={setLiveDecisions}
+            decisionLog={decisionLog}
+            onLiveDecisions={handleLiveDecisions}
           />
         </div>
         <div className="dashboard-bottom">
@@ -207,9 +243,9 @@ export default function Dashboard() {
           <div className="dashboard-bottom-right bottom-panel">
             <DecisionsPanel
               selectedId={selectedId}
+              decisions={incidentDecisions[selectedId] || []}
               onDecisionApply={handleDecisionApply}
               onDiversionApply={() => setShowDiversion(true)}
-              liveDecisions={liveDecisions}
             />
           </div>
         </div>
